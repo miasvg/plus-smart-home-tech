@@ -23,7 +23,6 @@ import java.io.IOException;
 public class TelemetryService {
     private final KafkaTemplate<String, byte[]> kafkaTemplate;
     private final HubAndSensorMapper mapper;
-    private final DatumWriter<SpecificRecord> datumWriter = new SpecificDatumWriter<>();
 
     @Value("${kafka.topics.sensors}")
     private String sensorsTopic;
@@ -54,6 +53,7 @@ public class TelemetryService {
         BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
 
         try {
+            DatumWriter<SpecificRecord> datumWriter = new SpecificDatumWriter<>(record.getSchema());
             datumWriter.write(record, encoder);
             encoder.flush();
             return out.toByteArray();
