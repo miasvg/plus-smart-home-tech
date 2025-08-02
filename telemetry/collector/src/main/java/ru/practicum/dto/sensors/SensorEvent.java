@@ -1,5 +1,6 @@
 package ru.practicum.dto.sensors;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.validation.constraints.NotBlank;
@@ -40,6 +41,9 @@ public abstract class SensorEvent {
     @NotBlank(message = "Идентификатор хаба не может быть пустым")
     private String hubId;
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING,
+            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            timezone = "UTC")
     private Instant timestamp = Instant.now();
 
     @NotNull(message = "Тип события не может быть null")
