@@ -13,7 +13,7 @@ public class HubAndSensorMapper {
         SensorEventAvro.Builder builder = SensorEventAvro.newBuilder()
                 .setId(dto.getId())
                 .setHubId(dto.getHubId())
-                .setTimestamp(Instant.ofEpochSecond(dto.getTimestamp().toEpochMilli()));
+                .setTimestamp(dto.getTimestamp());
 
         // Используем switch-expression для лаконичного определения payload
         Object payload = switch (dto.getType()) {
