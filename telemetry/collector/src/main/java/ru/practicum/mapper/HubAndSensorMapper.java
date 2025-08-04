@@ -30,7 +30,7 @@ public class HubAndSensorMapper {
     public HubEventAvro toAvro(HubEvent dto) {
         HubEventAvro.Builder builder = HubEventAvro.newBuilder()
                 .setHubId(dto.getHubId())
-                .setTimestamp(Instant.ofEpochSecond(dto.getTimestamp().toEpochMilli()));
+                .setTimestamp(dto.getTimestamp());
 
         Object payload = switch (dto.getType()) {
             case DEVICE_ADDED -> toAvro((DeviceAddedEvent) dto);
