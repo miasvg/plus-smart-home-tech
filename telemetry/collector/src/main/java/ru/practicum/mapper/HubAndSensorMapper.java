@@ -100,11 +100,12 @@ public class HubAndSensorMapper {
     }
 
     public ScenarioConditionAvro toAvro(ScenarioCondition dto) {
+        Object value = dto.getValue() != null ? dto.getValue() : null;
         return ScenarioConditionAvro.newBuilder()
                 .setSensorId(dto.getSensorId())
                 .setType(ConditionTypeAvro.valueOf(dto.getType().name()))
                 .setOperation(ConditionOperationAvro.valueOf(dto.getOperation().name()))
-                .setValue(dto.getValue()) // Avro union [null, int, boolean] может принимать Integer напрямую
+                .setValue(value)
                 .build();
     }
 
