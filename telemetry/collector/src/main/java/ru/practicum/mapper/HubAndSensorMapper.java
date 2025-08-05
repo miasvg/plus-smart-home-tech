@@ -4,7 +4,6 @@ import org.springframework.stereotype.Component;
 import ru.practicum.dto.hubs.*;
 import ru.practicum.dto.sensors.*;
 import ru.yandex.practicum.kafka.telemetry.event.*;
-import java.time.Instant;
 import java.util.stream.Collectors;
 
 @Component

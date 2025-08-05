@@ -1,6 +1,5 @@
 package ru.practicum.dto.sensors;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.validation.constraints.NotBlank;
@@ -9,12 +8,10 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.springframework.stereotype.Component;
-
 import java.time.Instant;
 
 /**
  * Абстрактный базовый класс для всех событий от датчиков.
- * Содержит общие поля и аннотации для полиморфной десериализации JSON.
  */
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
@@ -41,9 +38,7 @@ public abstract class SensorEvent {
     @NotBlank(message = "Идентификатор хаба не может быть пустым")
     private String hubId;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING,
-            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-            timezone = "UTC")
+    @NotNull
     private Instant timestamp = Instant.now();
 
     @NotNull(message = "Тип события не может быть null")
