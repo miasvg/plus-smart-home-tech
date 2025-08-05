@@ -109,8 +109,13 @@ public class HubAndSensorMapper {
             builder.setValue(null);
         } else if (dto.getValue() instanceof Boolean) {
             builder.setValue((Boolean) dto.getValue());
+        } else if (dto.getValue() instanceof Integer) {
+            builder.setValue((Integer) dto.getValue());
+        } else if (dto.getValue() instanceof Long) {
+            builder.setValue((Long) dto.getValue());
         } else {
-            builder.setValue(((Number) dto.getValue()).intValue());
+            throw new IllegalStateException("Неподдерживаемый тип значения: " +
+                    dto.getValue().getClass().getName());
         }
 
         return builder.build();

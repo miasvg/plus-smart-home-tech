@@ -64,7 +64,7 @@ protocol TelemetryProtocol {
 		string sensor_id;
 		ConditionTypeAvro type;
 		ConditionOperationAvro operation;
-		union { null, boolean, int } value = null;
+		union { null, int, boolean } value = null;
 	}
 
 	record DeviceActionAvro {
