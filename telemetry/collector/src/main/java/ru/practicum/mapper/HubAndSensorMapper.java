@@ -100,13 +100,20 @@ public class HubAndSensorMapper {
     }
 
     public ScenarioConditionAvro toAvro(ScenarioCondition dto) {
-        Object value = dto.getValue() != null ? dto.getValue() : null;
-        return ScenarioConditionAvro.newBuilder()
+        ScenarioConditionAvro.Builder builder = ScenarioConditionAvro.newBuilder()
                 .setSensorId(dto.getSensorId())
                 .setType(ConditionTypeAvro.valueOf(dto.getType().name()))
-                .setOperation(ConditionOperationAvro.valueOf(dto.getOperation().name()))
-                .setValue(value)
-                .build();
+                .setOperation(ConditionOperationAvro.valueOf(dto.getOperation().name()));
+
+        if (dto.getValue() == null) {
+            builder.setValue(null);
+        } else if (dto.getValue() instanceof Boolean) {
+            builder.setValue((Boolean) dto.getValue());
+        } else {
+            builder.setValue(((Number) dto.getValue()).intValue());
+        }
+
+        return builder.build();
     }
 
     public DeviceActionAvro toAvro(DeviceAction dto) {
