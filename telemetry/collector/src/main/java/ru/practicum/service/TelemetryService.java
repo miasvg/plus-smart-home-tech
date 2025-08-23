@@ -13,6 +13,9 @@ import ru.practicum.mapper.HubAndSensorMapper;
 import org.apache.avro.specific.SpecificRecord;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
+import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
@@ -30,25 +33,25 @@ public class TelemetryService {
     @Value("${kafka.topics.hubs}")
     private String hubsTopic;
 
-    public void send(SensorEvent event) {
+    public void send(SensorEventAvro event) {
         try {
-            byte[] avroData = serializeToAvro(mapper.toAvro(event));
+            byte[] avroData = serializeToAvro(event);
             sendWithCallback(sensorsTopic, event.getHubId(), avroData, "датчика");
         } catch (IOException e) {
             log.error("Ошибка сериализации события датчика", e);
         }
     }
 
-    public void send(HubEvent event) {
+    public void send(HubEventAvro event) {
         try {
-            byte[] avroData = serializeToAvro(mapper.toAvro(event));
+            byte[] avroData = serializeToAvro(event);
             sendWithCallback(hubsTopic, event.getHubId(), avroData, "хаба");
         } catch (IOException e) {
             log.error("Ошибка сериализации события хаба", e);
         }
     }
 
-    private byte[] serializeToAvro(SpecificRecord record) throws IOException {
+    private <T extends SpecificRecord> byte[] serializeToAvro(SpecificRecord record) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
 
