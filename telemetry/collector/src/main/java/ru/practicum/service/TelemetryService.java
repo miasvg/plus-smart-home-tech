@@ -1,5 +1,6 @@
 package ru.practicum.service;
 
+import net.devh.boot.grpc.server.service.GrpcService;
 import ru.practicum.dto.hubs.HubEvent;
 import ru.practicum.dto.sensors.SensorEvent;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 
-@Service
+@GrpcService
 @RequiredArgsConstructor
 @Slf4j
 public class TelemetryService {
