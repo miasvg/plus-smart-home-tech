@@ -31,7 +31,7 @@ import java.util.Properties;
 public class AggregationStarter {
     private final SnapshotAggregator snapshotAggregator;
 
-    @Value("${kafka.bootstrap-servers}")
+    @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
     @Value("${kafka.topics.sensors}")
