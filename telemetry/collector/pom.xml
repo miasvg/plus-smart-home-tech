@@ -56,11 +56,6 @@
             <artifactId>grpc-protobuf</artifactId>
             <version>1.59.0</version> <!-- Та же версия! -->
         </dependency>
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-stub</artifactId>
-            <version>1.59.0</version> <!-- Та же версия! -->
-        </dependency>
 
         <!-- ОБНОВИТЕ grpc-server-spring-boot-starter -->
         <dependency>
