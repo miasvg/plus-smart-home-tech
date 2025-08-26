@@ -21,7 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 
-@GrpcService
+@Service
 @RequiredArgsConstructor
 @Slf4j
 public class TelemetryService {
