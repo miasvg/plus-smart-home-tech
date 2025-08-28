@@ -1,7 +1,7 @@
 syntax = "proto3";
 package telemetry.message.services;
 option java_multiple_files = true;
-option java_package = "ru.yandex.practicum.grpc.telemetry.collector";
+option java_package = "ru.practicum.grpc.telemetry.collector";
 
 import "telemetry/message/hub_event.proto";
 import "telemetry/message/sensor_event.proto";

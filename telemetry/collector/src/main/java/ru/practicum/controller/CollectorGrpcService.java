@@ -6,6 +6,8 @@ import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import ru.practicum.mapper.HubAndSensorMapper;
 import ru.practicum.service.TelemetryService;
 import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
@@ -18,6 +20,7 @@ import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
 @GrpcService
 @RequiredArgsConstructor
 @Slf4j
+@Service
 public class CollectorGrpcService extends CollectorControllerGrpc.CollectorControllerImplBase {
     private final TelemetryService telemetryService;
     private final HubAndSensorMapper mapper;
