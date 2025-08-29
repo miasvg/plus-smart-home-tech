@@ -15,8 +15,9 @@ import com.google.protobuf.Empty;
 import org.springframework.test.context.ContextConfiguration;
 import ru.practicum.CollectorMain;
 import ru.practicum.controller.CollectorGrpcService;
-import ru.practicum.telemetry.message.*;
 import ru.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
+import ru.practicum.telemetry.message.HubEventProto;
+import ru.practicum.telemetry.message.SensorEventProto;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 

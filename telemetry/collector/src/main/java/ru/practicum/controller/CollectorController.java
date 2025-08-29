@@ -19,7 +19,7 @@ import ru.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
 @GrpcService
 @RequiredArgsConstructor
 @Slf4j
-public class CollectorGrpcService extends CollectorControllerGrpc.CollectorControllerImplBase {
+public class CollectorController extends CollectorControllerGrpc.CollectorControllerImplBase {
     private final TelemetryService telemetryService;
     private final HubAndSensorMapper mapper;
 
