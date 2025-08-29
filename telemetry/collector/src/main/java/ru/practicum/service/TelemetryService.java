@@ -1,8 +1,5 @@
 package ru.practicum.service;
 
-import net.devh.boot.grpc.server.service.GrpcService;
-import ru.practicum.dto.hubs.HubEvent;
-import ru.practicum.dto.sensors.SensorEvent;
 import lombok.RequiredArgsConstructor;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;

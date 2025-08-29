@@ -11,7 +11,7 @@ import ru.practicum.dto.sensors.MotionSensorEvent;
 import ru.practicum.dto.sensors.SensorEvent;
 import ru.practicum.dto.sensors.SwitchSensorEvent;
 import ru.practicum.dto.sensors.TemperatureSensorEvent;
-import ru.yandex.practicum.grpc.telemetry.event.*;
+import ru.practicum.telemetry.message.*;
 import ru.yandex.practicum.kafka.telemetry.event.*;
 
 import java.time.Instant;

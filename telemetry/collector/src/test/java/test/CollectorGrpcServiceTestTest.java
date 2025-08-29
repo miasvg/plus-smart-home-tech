@@ -8,7 +8,6 @@ import io.grpc.testing.GrpcCleanupRule;
 import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
@@ -16,9 +15,8 @@ import com.google.protobuf.Empty;
 import org.springframework.test.context.ContextConfiguration;
 import ru.practicum.CollectorMain;
 import ru.practicum.controller.CollectorGrpcService;
-import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
-import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
-import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
+import ru.practicum.telemetry.message.*;
+import ru.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
