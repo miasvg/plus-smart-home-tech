@@ -19,56 +19,71 @@ public class SnapshotAggregator {
     private final Map<String, SensorsSnapshotAvro> snapshots = new ConcurrentHashMap<>();
 
     public Optional<SensorsSnapshotAvro> updateState(SensorEventAvro event) {
-        String hubId = event.getHubId();
-        String sensorId = event.getId();
-        Instant eventTimestamp = event.getTimestamp();
+        if (event == null || event.getHubId() == null || event.getId() == null) {
+            log.warn("Skip event: nulls in hubId/id");
+            return Optional.empty();
+        }
 
-        // Получаем или создаем снапшот для хаба
-        SensorsSnapshotAvro snapshot = snapshots.computeIfAbsent(hubId, id ->
-                SensorsSnapshotAvro.newBuilder()
-                        .setHubId(hubId)
-                        .setTimestamp(eventTimestamp)
-                        .setSensorsState(new HashMap<>())
-                        .build()
-        );
+        final String hubId = event.getHubId().toString();
+        final String sensorId = event.getId().toString();
+        final Instant ts = event.getTimestamp();
 
-        // Проверяем текущее состояние датчика
-        SensorStateAvro currentState = snapshot.getSensorsState().get(sensorId);
+        // Берём текущее состояние хаба (или создаём пустое)
+        SensorsSnapshotAvro current = snapshots.get(hubId);
+        if (current == null) {
+            current = SensorsSnapshotAvro.newBuilder()
+                    .setHubId(hubId)
+                    .setTimestamp(ts)
+                    .setSensorsState(new HashMap<>())
+                    .build();
+        }
 
-        // Если состояние уже есть и оно новее или такое же - пропускаем
-        if (currentState != null) {
-            if (currentState.getTimestamp().isAfter(eventTimestamp)) {
-                log.debug("Событие устарело для датчика {}", sensorId);
+        final Map<String, SensorStateAvro> stateMap = current.getSensorsState();
+        final SensorStateAvro existing = stateMap.get(sensorId);
+
+        // Если у нас уже есть более "свежее" значение по этому сенсору — игнорируем
+        if (existing != null) {
+            Instant existedTs = existing.getTimestamp();
+            if (existedTs != null && existedTs.isAfter(ts)) {
+                log.debug("Skip outdated event: hub={}, sensor={}, existedTs={}, eventTs={}",
+                        hubId, sensorId, existedTs, ts);
                 return Optional.empty();
             }
-
-            if (currentState.getTimestamp() == eventTimestamp &&
-                    Objects.equals(currentState.getData(), event.getPayload())) {
-                log.debug("Дублирующее событие для датчика {}", sensorId);
+            // Если время одинаковое и данные идентичны — это дубликат
+            if (existedTs != null && existedTs.equals(ts)
+                    && Objects.equals(existing.getData(), event.getPayload())) {
+                log.debug("Skip duplicate event: hub={}, sensor={}, ts={}", hubId, sensorId, ts);
                 return Optional.empty();
             }
         }
 
-        // Создаем новое состояние датчика
+        // Обновляем конкретный сенсор
         SensorStateAvro newState = SensorStateAvro.newBuilder()
-                .setTimestamp(eventTimestamp)
+                .setTimestamp(ts)
                 .setData(event.getPayload())
                 .build();
 
-        // Обновляем снапшот
-        Map<String, SensorStateAvro> newStateMap = new HashMap<>(snapshot.getSensorsState());
-        newStateMap.put(sensorId, newState);
+        Map<String, SensorStateAvro> newMap = new HashMap<>(stateMap);
+        newMap.put(sensorId, newState);
 
-        SensorsSnapshotAvro updatedSnapshot = SensorsSnapshotAvro.newBuilder(snapshot)
-                .setTimestamp(eventTimestamp)
-                .setSensorsState(newStateMap)
+        // timestamp снапшота — это "последнее обновление по хабу"
+        Instant snapshotTs = current.getTimestamp();
+        if (snapshotTs == null || ts.isAfter(snapshotTs)) {
+            snapshotTs = ts;
+        }
+
+        SensorsSnapshotAvro updated = SensorsSnapshotAvro.newBuilder(current)
+                .setHubId(hubId)                 // жёстко из события
+                .setTimestamp(snapshotTs)        // не регрессим
+                .setSensorsState(newMap)
                 .build();
 
-        snapshots.put(hubId, updatedSnapshot);
+        snapshots.put(hubId, updated);
 
-        log.info("Обновлен снапшот для хаба {}, датчик {}", hubId, sensorId);
-        return Optional.of(updatedSnapshot);
+        log.info("Snapshot updated: hub={}, sensor={}, ts={}", hubId, sensorId, ts);
+        return Optional.of(updated);
     }
+
 
     public Optional<SensorsSnapshotAvro> getSnapshot(String hubId) {
         return Optional.ofNullable(snapshots.get(hubId));
