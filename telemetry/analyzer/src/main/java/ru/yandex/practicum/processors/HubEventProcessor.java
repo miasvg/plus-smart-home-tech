@@ -38,7 +38,7 @@ public class HubEventProcessor implements Runnable {
     @Value("${kafka.topics.hubs}")
     private String topic;
 
-    @Value("${spring.kafka.bootstrap-servers}")
+    @Value("${kafka.bootstrap-servers}")
     private String bootstrapServers;
 
     @PostConstruct

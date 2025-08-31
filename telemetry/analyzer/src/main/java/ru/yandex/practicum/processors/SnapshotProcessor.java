@@ -37,7 +37,7 @@ public class SnapshotProcessor implements Runnable {
     @Value("${kafka.topics.snapshots}")
     private String topic;
 
-    @Value("${spring.kafka.bootstrap-servers}")
+    @Value("${kafka.bootstrap-servers}")
     private String bootstrapServers;
 
     @PostConstruct
