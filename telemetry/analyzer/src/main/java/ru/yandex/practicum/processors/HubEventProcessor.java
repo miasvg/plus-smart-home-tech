@@ -20,6 +20,8 @@ import ru.yandex.practicum.repositories.ConditionRepository;
 import javax.annotation.PreDestroy;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -127,47 +129,62 @@ public class HubEventProcessor implements Runnable {
     private void processScenarioAdded(HubEventAvro event, String hubId) {
         var payload = (ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro) event.getPayload();
 
-        // Если сценарий с таким именем уже есть — удалим (как и было)
-        scenarioRepository.findByHubIdAndName(hubId, payload.getName().toString())
+        scenarioRepository.findByHubIdAndName(hubId, payload.getName())
                 .ifPresent(existing -> scenarioRepository.delete(existing));
 
         Scenario scenario = new Scenario();
         scenario.setHubId(hubId);
-        scenario.setName(payload.getName().toString());
+        scenario.setName(payload.getName());
 
-        // Process conditions: сохраняем Condition отдельно, затем создаём ScenarioCondition (join-entity)
+        // --- Условия ---
         for (var conditionAvro : payload.getConditions()) {
-            Condition condition = new Condition();
-            condition.setType(conditionAvro.getType());
-            condition.setOperation(conditionAvro.getOperation());
-            if (conditionAvro.getValue() instanceof Integer) {
-                condition.setValue((Integer) conditionAvro.getValue());
-            }
-            condition = conditionRepository.save(condition);
+            // ищем существующий Condition в базе по type, operation и value
+            Condition condition = conditionRepository.findAll().stream()
+                    .filter(c -> c.getType() == conditionAvro.getType()
+                            && c.getOperation() == conditionAvro.getOperation()
+                            && Objects.equals(c.getValue(), conditionAvro.getValue() instanceof Integer ? (Integer) conditionAvro.getValue() : null))
+                    .findFirst()
+                    .orElseGet(() -> {
+                        Condition c = new Condition();
+                        c.setType(conditionAvro.getType());
+                        c.setOperation(conditionAvro.getOperation());
+                        if (conditionAvro.getValue() instanceof Integer) c.setValue((Integer) conditionAvro.getValue());
+                        return conditionRepository.save(c);
+                    });
 
-            String sensorId = conditionAvro.getSensorId().toString();
+            // сенсор
+            String sensorId = conditionAvro.getSensorId();
             Sensor sensor = sensorRepository.findById(sensorId)
                     .orElseGet(() -> sensorRepository.save(new Sensor(sensorId, hubId)));
 
-            ScenarioCondition sc = new ScenarioCondition(condition, sensor);
+            ScenarioCondition sc = new ScenarioCondition();
             sc.setScenario(scenario);
-            // id.scenarioId будет проставлен при сохранении scenario
+            sc.setCondition(condition);
+            sc.setSensor(sensor);
             scenario.getConditions().add(sc);
         }
 
-        // Process actions
+        // --- Действия ---
         for (var actionAvro : payload.getActions()) {
-            Action action = new Action();
-            action.setType(actionAvro.getType());
-            action.setValue(actionAvro.getValue());
-            action = actionRepository.save(action);
+            Action action = actionRepository.findAll().stream()
+                    .filter(a -> a.getType() == actionAvro.getType()
+                            && Objects.equals(a.getValue(), actionAvro.getValue() != null ? actionAvro.getValue() : null))
+                    .findFirst()
+                    .orElseGet(() -> {
+                        Action a = new Action();
+                        a.setType(actionAvro.getType());
+                        a.setValue(actionAvro.getValue() != null ? actionAvro.getValue() : null);
+                        return actionRepository.save(a);
+                    });
 
-            String sensorId = actionAvro.getSensorId().toString();
+            String sensorId = actionAvro.getSensorId();
             Sensor sensor = sensorRepository.findById(sensorId)
                     .orElseGet(() -> sensorRepository.save(new Sensor(sensorId, hubId)));
 
-            ScenarioAction sa = new ScenarioAction(action, sensor);
+            ScenarioAction sa = new ScenarioAction();
             sa.setScenario(scenario);
+            sa.setAction(action);
+            sa.setSensor(sensor);
             scenario.getActions().add(sa);
         }
 
@@ -176,6 +193,8 @@ public class HubEventProcessor implements Runnable {
         log.info("Scenario added: {} for hub: {} with {} conditions and {} actions",
                 payload.getName(), hubId, scenario.getConditions().size(), scenario.getActions().size());
     }
+
+
 
     private void processScenarioRemoved(HubEventAvro event, String hubId) {
         var payload = (ru.yandex.practicum.kafka.telemetry.event.ScenarioRemovedEventAvro) event.getPayload();
