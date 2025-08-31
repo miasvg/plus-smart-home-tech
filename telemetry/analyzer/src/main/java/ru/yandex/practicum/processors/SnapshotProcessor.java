@@ -22,6 +22,7 @@ import javax.annotation.PreDestroy;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -30,22 +31,28 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @RequiredArgsConstructor
 public class SnapshotProcessor implements Runnable {
 
-    private final KafkaConfig kafkaProperties;
-    private Consumer<String, SensorsSnapshotAvro> consumer;
     private final SnapshotHandler snapshotHandler;
+    private Consumer<String, SensorsSnapshotAvro> consumer;
 
     @Value("${kafka.topics.snapshots}")
     private String topic;
 
+    @Value("${spring.kafka.bootstrap-servers}")
+    private String bootstrapServers;
+
     @PostConstruct
     public void init() {
-        // собрали consumer из пропертей
-        this.consumer = new KafkaConsumer<>(
-                kafkaProperties.snapshotConsumerFactory().getConfigurationProperties(), // метод возвращает Map<String, Object>
-                new StringDeserializer(),
-                new SensorsSnapshotDeserializer()
-        );
+        Properties props = new Properties();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "snapshot-processor-group");
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, SensorsSnapshotDeserializer.class.getName());
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+
+        consumer = new KafkaConsumer<>(props, new StringDeserializer(), new SensorsSnapshotDeserializer());
     }
+
+    @Override
     public void run() {
         try {
             consumer.subscribe(List.of(topic));
@@ -53,7 +60,6 @@ public class SnapshotProcessor implements Runnable {
 
             while (true) {
                 ConsumerRecords<String, SensorsSnapshotAvro> records = consumer.poll(Duration.ofMillis(1000));
-
                 for (ConsumerRecord<String, SensorsSnapshotAvro> record : records) {
                     SensorsSnapshotAvro sensorsSnapshot = record.value();
                     log.info("Получен снимок умного дома: {}", sensorsSnapshot);
@@ -63,7 +69,7 @@ public class SnapshotProcessor implements Runnable {
             }
         } catch (WakeupException ignored) {
         } catch (Exception e) {
-            log.error("Ошибка получения данных {}", topic);
+            log.error("Ошибка получения данных {}", topic, e);
         } finally {
             try {
                 consumer.commitSync();
@@ -73,3 +79,4 @@ public class SnapshotProcessor implements Runnable {
         }
     }
 }
+

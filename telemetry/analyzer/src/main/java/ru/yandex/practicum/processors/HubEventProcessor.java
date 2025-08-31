@@ -32,22 +32,27 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @RequiredArgsConstructor
 public class HubEventProcessor implements Runnable {
 
-    private final KafkaConfig kafkaProperties;
-    private Consumer<String, HubEventAvro> consumer;
     private final HubHandler hubHandler;
+    private Consumer<String, HubEventAvro> consumer;
 
     @Value("${kafka.topics.hubs}")
     private String topic;
 
+    @Value("${spring.kafka.bootstrap-servers}")
+    private String bootstrapServers;
+
     @PostConstruct
     public void init() {
-        // собрали consumer из пропертей
-        this.consumer = new KafkaConsumer<>(
-                kafkaProperties.hubEventConsumerFactory().getConfigurationProperties(),
-                new StringDeserializer(),
-                new HubEventDeserializerAnalyzer()
-        );
+        Properties props = new Properties();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "hub-event-processor-group");
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, HubEventDeserializerAnalyzer.class.getName());
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+
+        consumer = new KafkaConsumer<>(props, new StringDeserializer(), new HubEventDeserializerAnalyzer());
     }
+
     @Override
     public void run() {
         try {
@@ -57,7 +62,6 @@ public class HubEventProcessor implements Runnable {
 
             while (true) {
                 ConsumerRecords<String, HubEventAvro> records = consumer.poll(Duration.ofMillis(1000));
-
                 for (ConsumerRecord<String, HubEventAvro> record : records) {
                     HubEventAvro event = record.value();
                     String payloadName = event.getPayload().getClass().getSimpleName();
@@ -65,14 +69,14 @@ public class HubEventProcessor implements Runnable {
                     if (mapBuilder.containsKey(payloadName)) {
                         mapBuilder.get(payloadName).handle(event);
                     } else {
-                        throw new IllegalArgumentException("Нет обработчика для события " + event);
+                        log.warn("Нет обработчика для события {}", event);
                     }
                 }
                 consumer.commitSync();
             }
         } catch (WakeupException ignored) {
         } catch (Exception e) {
-            log.error("Ошибка получения данных {}", topic);
+            log.error("Ошибка получения данных {}", topic, e);
         } finally {
             try {
                 consumer.commitSync();
@@ -82,3 +86,4 @@ public class HubEventProcessor implements Runnable {
         }
     }
 }
+
