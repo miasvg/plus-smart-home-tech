@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.jpa_entities.*;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
+import ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro;
 import ru.yandex.practicum.repositories.ScenarioRepository;
 import ru.yandex.practicum.repositories.SensorRepository;
 import ru.yandex.practicum.repositories.ActionRepository;
@@ -127,35 +128,28 @@ public class HubEventProcessor implements Runnable {
     }
 
     private void processScenarioAdded(HubEventAvro event, String hubId) {
-        var payload = (ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro) event.getPayload();
+        var payload = (ScenarioAddedEventAvro) event.getPayload();
 
+        // Удаляем существующий сценарий с таким именем
         scenarioRepository.findByHubIdAndName(hubId, payload.getName())
-                .ifPresent(existing -> scenarioRepository.delete(existing));
+                .ifPresent(scenarioRepository::delete);
 
         Scenario scenario = new Scenario();
         scenario.setHubId(hubId);
         scenario.setName(payload.getName());
 
-        // --- Условия ---
+        // --- Обработка условий ---
         for (var conditionAvro : payload.getConditions()) {
-            // ищем существующий Condition в базе по type, operation и value
-            Condition condition = conditionRepository.findAll().stream()
-                    .filter(c -> c.getType() == conditionAvro.getType()
-                            && c.getOperation() == conditionAvro.getOperation()
-                            && Objects.equals(c.getValue(), conditionAvro.getValue() instanceof Integer ? (Integer) conditionAvro.getValue() : null))
-                    .findFirst()
-                    .orElseGet(() -> {
-                        Condition c = new Condition();
-                        c.setType(conditionAvro.getType());
-                        c.setOperation(conditionAvro.getOperation());
-                        if (conditionAvro.getValue() instanceof Integer) c.setValue((Integer) conditionAvro.getValue());
-                        return conditionRepository.save(c);
-                    });
+            Condition condition = new Condition();
+            condition.setType(conditionAvro.getType());
+            condition.setOperation(conditionAvro.getOperation());
+            if (conditionAvro.getValue() instanceof Integer) {
+                condition.setValue((Integer) conditionAvro.getValue());
+            }
+            condition = conditionRepository.save(condition);
 
-            // сенсор
-            String sensorId = conditionAvro.getSensorId();
-            Sensor sensor = sensorRepository.findById(sensorId)
-                    .orElseGet(() -> sensorRepository.save(new Sensor(sensorId, hubId)));
+            Sensor sensor = sensorRepository.findById(conditionAvro.getSensorId())
+                    .orElseGet(() -> sensorRepository.save(new Sensor(conditionAvro.getSensorId(), hubId)));
 
             ScenarioCondition sc = new ScenarioCondition();
             sc.setScenario(scenario);
@@ -164,35 +158,33 @@ public class HubEventProcessor implements Runnable {
             scenario.getConditions().add(sc);
         }
 
-        // --- Действия ---
+        // --- Обработка действий ---
         for (var actionAvro : payload.getActions()) {
-            Action action = actionRepository.findAll().stream()
-                    .filter(a -> a.getType() == actionAvro.getType()
-                            && Objects.equals(a.getValue(), actionAvro.getValue() != null ? actionAvro.getValue() : null))
-                    .findFirst()
-                    .orElseGet(() -> {
-                        Action a = new Action();
-                        a.setType(actionAvro.getType());
-                        a.setValue(actionAvro.getValue() != null ? actionAvro.getValue() : null);
-                        return actionRepository.save(a);
-                    });
+            Action action = new Action();
+            action.setType(actionAvro.getType());
+            action.setValue(actionAvro.getValue());
+            action = actionRepository.save(action);
 
-            String sensorId = actionAvro.getSensorId();
-            Sensor sensor = sensorRepository.findById(sensorId)
-                    .orElseGet(() -> sensorRepository.save(new Sensor(sensorId, hubId)));
+            Sensor sensor = sensorRepository.findById(actionAvro.getSensorId())
+                    .orElseGet(() -> sensorRepository.save(new Sensor(actionAvro.getSensorId(), hubId)));
 
             ScenarioAction sa = new ScenarioAction();
+            ScenarioActionId saId = new ScenarioActionId();
+            saId.setScenarioId(null); // Hibernate сам присвоит после сохранения Scenario
+            saId.setActionId(action.getId());
+            saId.setSensorId(sensor.getId());
+            sa.setId(saId);
+
             sa.setScenario(scenario);
             sa.setAction(action);
             sa.setSensor(sensor);
+
             scenario.getActions().add(sa);
         }
 
         scenarioRepository.save(scenario);
-
-        log.info("Scenario added: {} for hub: {} with {} conditions and {} actions",
-                payload.getName(), hubId, scenario.getConditions().size(), scenario.getActions().size());
     }
+
 
 
 
