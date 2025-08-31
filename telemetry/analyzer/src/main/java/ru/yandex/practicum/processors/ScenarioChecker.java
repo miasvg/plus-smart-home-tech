@@ -3,12 +3,19 @@ package ru.yandex.practicum.processors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.dto.ConditionOperation;
+import ru.yandex.practicum.dto.ConditionType;
 import ru.yandex.practicum.jpa_entities.Action;
 import ru.yandex.practicum.jpa_entities.Condition;
 import ru.yandex.practicum.jpa_entities.Scenario;
 import ru.yandex.practicum.jpa_entities.Sensor;
 import ru.yandex.practicum.kafka.telemetry.event.*;
 import ru.yandex.practicum.service.HubRouterClientService;
+
+import java.util.Objects;
+
+import static ru.yandex.practicum.dto.ConditionOperation.*;
+import static ru.yandex.practicum.kafka.telemetry.event.ConditionTypeAvro.*;
 
 
 @Slf4j
@@ -51,86 +58,58 @@ public class ScenarioChecker {
     /**
      * Извлекает значение из данных сенсора по типу условия
      */
-    private Object extractSensorValue(SensorStateAvro sensorState, ConditionTypeAvro type) {
+    private Object extractSensorValue(SensorStateAvro sensorState, ConditionType conditionType) {
         Object sensorData = sensorState.getData();
 
         try {
-            switch (type) {
+            switch (conditionType) {
                 case TEMPERATURE:
-                    if (sensorData instanceof ru.yandex.practicum.kafka.telemetry.event.TemperatureSensorAvro) {
-                        return ((ru.yandex.practicum.kafka.telemetry.event.TemperatureSensorAvro) sensorData).getTemperatureC();
+                    if (sensorData instanceof TemperatureSensorAvro t) {
+                        return t.getTemperatureC();
                     }
-                    if (sensorData instanceof ru.yandex.practicum.kafka.telemetry.event.ClimateSensorAvro) {
-                        return ((ru.yandex.practicum.kafka.telemetry.event.ClimateSensorAvro) sensorData).getTemperatureC();
+                    if (sensorData instanceof ClimateSensorAvro c) {
+                        return c.getTemperatureC();
                     }
                     break;
-
                 case HUMIDITY:
-                    if (sensorData instanceof ru.yandex.practicum.kafka.telemetry.event.ClimateSensorAvro) {
-                        return ((ru.yandex.practicum.kafka.telemetry.event.ClimateSensorAvro) sensorData).getHumidity();
-                    }
+                    if (sensorData instanceof ClimateSensorAvro c) return c.getHumidity();
                     break;
-
                 case CO2LEVEL:
-                    if (sensorData instanceof ru.yandex.practicum.kafka.telemetry.event.ClimateSensorAvro) {
-                        return ((ru.yandex.practicum.kafka.telemetry.event.ClimateSensorAvro) sensorData).getCo2Level();
-                    }
+                    if (sensorData instanceof ClimateSensorAvro c) return c.getCo2Level();
                     break;
-
                 case LUMINOSITY:
-                    if (sensorData instanceof ru.yandex.practicum.kafka.telemetry.event.LightSensorAvro) {
-                        return ((ru.yandex.practicum.kafka.telemetry.event.LightSensorAvro) sensorData).getLuminosity();
-                    }
+                    if (sensorData instanceof LightSensorAvro l) return l.getLuminosity();
                     break;
-
                 case MOTION:
-                    if (sensorData instanceof ru.yandex.practicum.kafka.telemetry.event.MotionSensorAvro) {
-                        return ((ru.yandex.practicum.kafka.telemetry.event.MotionSensorAvro) sensorData).getMotion();
-                    }
+                    if (sensorData instanceof MotionSensorAvro m) return m.getMotion();
                     break;
-
                 case SWITCH:
-                    if (sensorData instanceof ru.yandex.practicum.kafka.telemetry.event.SwitchSensorAvro) {
-                        return ((ru.yandex.practicum.kafka.telemetry.event.SwitchSensorAvro) sensorData).getState();
-                    }
+                    if (sensorData instanceof SwitchSensorAvro s) return s.getState();
                     break;
             }
         } catch (Exception e) {
-            log.error("Error extracting sensor value for type {}", type, e);
+            log.error("Error extracting sensor value for type {}", conditionType, e);
         }
 
         return null;
     }
 
-    /**
-     * Выполняет сравнение значения сенсора с условием
-     */
     private boolean evaluateCondition(Condition condition, Object sensorValue) {
-        if (sensorValue == null || condition.getValue() == null) {
-            return false;
-        }
+        if (sensorValue == null || condition.getValue() == null) return false;
 
         try {
-            if (sensorValue instanceof Boolean) {
-                boolean actual = (Boolean) sensorValue;
-                boolean expected = condition.getValue() != 0;
-
-                return condition.getOperation() == ConditionOperationAvro.EQUALS && actual == expected;
+            if (sensorValue instanceof Boolean actualBool) {
+                boolean expected = condition.getValue() != 0; // если value хранится как int
+                return condition.getOperation() == ConditionOperation.EQUALS && actualBool == expected;
             }
 
-            if (sensorValue instanceof Integer) {
-                int actual = (Integer) sensorValue;
+            if (sensorValue instanceof Integer actualInt) {
                 int expected = condition.getValue();
-
                 switch (condition.getOperation()) {
-                    case EQUALS:
-                        return actual == expected;
-                    case GREATER_THAN:
-                        return actual > expected;
-                    case LOWER_THAN:
-                        return actual < expected;
-                    default:
-                        return false;
+                    case EQUALS -> { return actualInt == expected; }
+                    case GREATER_THAN -> { return actualInt > expected; }
+                    case LOWER_THAN -> { return actualInt < expected; }
+                    default -> { return false; }
                 }
             }
 
@@ -182,4 +161,5 @@ public class ScenarioChecker {
                     action.getType(), sensor.getId(), scenarioName, e);
         }
     }
+
 }

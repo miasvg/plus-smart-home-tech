@@ -1,5 +1,6 @@
 package ru.yandex.practicum.dto;
 
 public enum ConditionType {
-    ACTIVATE, DEACTIVATE, INVERSE, SET_VALUE
+    MOTION, LUMINOSITY, SWITCH, TEMPERATURE, CO2LEVEL, HUMIDITY
+
 }
