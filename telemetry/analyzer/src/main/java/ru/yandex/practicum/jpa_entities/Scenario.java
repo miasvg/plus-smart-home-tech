@@ -5,7 +5,9 @@ import lombok.*;
 
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Entity
@@ -28,16 +30,10 @@ public class Scenario {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(name = "scenario_conditions",
-            joinColumns = @JoinColumn(name = "scenario_id"),
-            inverseJoinColumns = @JoinColumn(name = "condition_id"))
-    private List<Condition> conditions = new ArrayList<>();
+    @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ScenarioCondition> conditions = new HashSet<>();
 
-    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(name = "scenario_actions",
-            joinColumns = @JoinColumn(name = "scenario_id"),
-            inverseJoinColumns = @JoinColumn(name = "action_id"))
-    private List<Action> actions = new ArrayList<>();
+    @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ScenarioAction> actions = new HashSet<>();
 
 }

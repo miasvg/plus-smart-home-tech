@@ -31,13 +31,4 @@ public class Condition {
 
     @Column(name = "value")
     private Integer value;
-
-    @ManyToMany(mappedBy = "conditions")
-    private List<Scenario> scenarios = new ArrayList<>();
-
-    @ManyToMany
-    @JoinTable(name = "scenario_conditions",
-            joinColumns = @JoinColumn(name = "condition_id"),
-            inverseJoinColumns = @JoinColumn(name = "sensor_id"))
-    private List<Sensor> sensors = new ArrayList<>();
 }

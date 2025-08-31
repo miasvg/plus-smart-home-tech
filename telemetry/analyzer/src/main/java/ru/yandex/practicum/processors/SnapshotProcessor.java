@@ -89,7 +89,7 @@ public class SnapshotProcessor implements Runnable {
         String hubId = snapshot.getHubId().toString();
 
         // Эффективная загрузка сценариев со всеми связями
-        List<Scenario> scenarios = scenarioRepository.findByHubIdWithConditionsAndSensors(hubId);
+        List<Scenario> scenarios = scenarioRepository.findByHubId(hubId);
 
         if (scenarios.isEmpty()) {
             log.debug("No scenarios found for hub: {}", hubId);

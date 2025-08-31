@@ -25,13 +25,4 @@ public class Action {
 
     @Column(name = "value")
     private Integer value;
-
-    @ManyToMany(mappedBy = "actions")
-    private List<Scenario> scenarios = new ArrayList<>();
-
-    @ManyToMany
-    @JoinTable(name = "scenario_actions",
-            joinColumns = @JoinColumn(name = "action_id"),
-            inverseJoinColumns = @JoinColumn(name = "sensor_id"))
-    private List<Sensor> sensors = new ArrayList<>();
 }

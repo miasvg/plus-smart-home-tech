@@ -21,40 +21,30 @@ public class ScenarioChecker {
      * Проверяет все условия сценария против текущего снапшота
      */
     public boolean checkConditions(Scenario scenario, SensorsSnapshotAvro snapshot) {
+        // теперь scenario.getConditions() содержит ScenarioCondition
         return scenario.getConditions().stream()
-                .allMatch(condition -> checkCondition(condition, snapshot));
+                .allMatch(sc -> checkConditionForSensor(sc.getCondition(), sc.getSensor(), snapshot));
     }
 
-    /**
-     * Проверяет одно условие для всех связанных сенсоров
-     */
-    private boolean checkCondition(Condition condition, SensorsSnapshotAvro snapshot) {
-        return condition.getSensors().stream()
-                .allMatch(sensor -> checkConditionForSensor(condition, sensor, snapshot));
-    }
 
     /**
      * Проверяет условие для конкретного сенсора
      */
     private boolean checkConditionForSensor(Condition condition, Sensor sensor, SensorsSnapshotAvro snapshot) {
         SensorStateAvro sensorState = snapshot.getSensorsState().get(sensor.getId());
-
         if (sensorState == null || sensorState.getData() == null) {
             log.debug("Sensor {} not found or has no data in snapshot", sensor.getId());
             return false;
         }
-
         Object sensorValue = extractSensorValue(sensorState, condition.getType());
         if (sensorValue == null) {
             log.debug("Could not extract value for sensor {} with type {}", sensor.getId(), condition.getType());
             return false;
         }
-
         boolean result = evaluateCondition(condition, sensorValue);
         log.debug("Condition check: sensor={}, type={}, operation={}, value={}, actual={}, result={}",
                 sensor.getId(), condition.getType(), condition.getOperation(), condition.getValue(),
                 sensorValue, result);
-
         return result;
     }
 
@@ -156,17 +146,22 @@ public class ScenarioChecker {
      * Выполняет все действия сценария
      */
     public void executeActions(Scenario scenario, String hubId) {
-        if (scenario.getActions().isEmpty()) {
-            log.warn("Scenario '{}' has no actions to execute", scenario.getName());
-            return;
-        }
-
-        log.info("Executing {} actions for scenario '{}' in hub {}",
-                scenario.getActions().size(), scenario.getName(), hubId);
-
-        scenario.getActions().forEach(action ->
-                action.getSensors().forEach(sensor ->
-                        executeAction(action, sensor, hubId, scenario.getName())));
+        scenario.getActions().forEach(sa -> {
+            try {
+                Action action = sa.getAction();
+                Sensor sensor = sa.getSensor();
+                hubRouterClientService.sendDeviceCommand(
+                        hubId,
+                        scenario.getName(),
+                        sensor.getId(),
+                        action.getType().name(),
+                        action.getValue()
+                );
+            } catch (Exception e) {
+                log.error("❌ Failed to execute action for scenario {} sensor {}",
+                        scenario.getName(), sa.getSensor().getId(), e);
+            }
+        });
     }
 
     /**

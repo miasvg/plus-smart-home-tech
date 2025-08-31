@@ -10,10 +10,7 @@ import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.jpa_entities.Action;
-import ru.yandex.practicum.jpa_entities.Condition;
-import ru.yandex.practicum.jpa_entities.Scenario;
-import ru.yandex.practicum.jpa_entities.Sensor;
+import ru.yandex.practicum.jpa_entities.*;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 import ru.yandex.practicum.repositories.ScenarioRepository;
 import ru.yandex.practicum.repositories.SensorRepository;
@@ -130,6 +127,7 @@ public class HubEventProcessor implements Runnable {
     private void processScenarioAdded(HubEventAvro event, String hubId) {
         var payload = (ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro) event.getPayload();
 
+        // Если сценарий с таким именем уже есть — удалим (как и было)
         scenarioRepository.findByHubIdAndName(hubId, payload.getName().toString())
                 .ifPresent(existing -> scenarioRepository.delete(existing));
 
@@ -137,49 +135,44 @@ public class HubEventProcessor implements Runnable {
         scenario.setHubId(hubId);
         scenario.setName(payload.getName().toString());
 
-        // Process conditions with sensor links
+        // Process conditions: сохраняем Condition отдельно, затем создаём ScenarioCondition (join-entity)
         for (var conditionAvro : payload.getConditions()) {
             Condition condition = new Condition();
             condition.setType(conditionAvro.getType());
             condition.setOperation(conditionAvro.getOperation());
-
             if (conditionAvro.getValue() instanceof Integer) {
                 condition.setValue((Integer) conditionAvro.getValue());
             }
+            condition = conditionRepository.save(condition);
 
-            // Find and link sensor
             String sensorId = conditionAvro.getSensorId().toString();
             Sensor sensor = sensorRepository.findById(sensorId)
-                    .orElseGet(() -> {
-                        Sensor newSensor = new Sensor(sensorId, hubId);
-                        return sensorRepository.save(newSensor);
-                    });
+                    .orElseGet(() -> sensorRepository.save(new Sensor(sensorId, hubId)));
 
-            condition.getSensors().add(sensor);
-            conditionRepository.save(condition);
-            scenario.getConditions().add(condition);
+            ScenarioCondition sc = new ScenarioCondition(condition, sensor);
+            sc.setScenario(scenario);
+            // id.scenarioId будет проставлен при сохранении scenario
+            scenario.getConditions().add(sc);
         }
 
-        // Process actions with sensor links
+        // Process actions
         for (var actionAvro : payload.getActions()) {
             Action action = new Action();
             action.setType(actionAvro.getType());
             action.setValue(actionAvro.getValue());
+            action = actionRepository.save(action);
 
-            // Find and link sensor
             String sensorId = actionAvro.getSensorId().toString();
             Sensor sensor = sensorRepository.findById(sensorId)
-                    .orElseGet(() -> {
-                        Sensor newSensor = new Sensor(sensorId, hubId);
-                        return sensorRepository.save(newSensor);
-                    });
+                    .orElseGet(() -> sensorRepository.save(new Sensor(sensorId, hubId)));
 
-            action.getSensors().add(sensor);
-            actionRepository.save(action);
-            scenario.getActions().add(action);
+            ScenarioAction sa = new ScenarioAction(action, sensor);
+            sa.setScenario(scenario);
+            scenario.getActions().add(sa);
         }
 
         scenarioRepository.save(scenario);
+
         log.info("Scenario added: {} for hub: {} with {} conditions and {} actions",
                 payload.getName(), hubId, scenario.getConditions().size(), scenario.getActions().size());
     }
