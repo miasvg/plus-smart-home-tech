@@ -6,7 +6,6 @@ import lombok.*;
 @Entity
 @Table(name = "scenario_actions")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor
-@RequiredArgsConstructor
 public class ScenarioAction {
 
     @EmbeddedId
