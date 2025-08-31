@@ -22,7 +22,6 @@ public class ScenarioAction {
     private Action action;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("sensorId")
     @JoinColumn(name = "sensor_id", nullable = false)
     private Sensor sensor;
 
