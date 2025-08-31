@@ -33,4 +33,3 @@ public class ScenarioActionId implements Serializable {
         return Objects.hash(scenarioId, actionId, sensorId);
     }
 }
-

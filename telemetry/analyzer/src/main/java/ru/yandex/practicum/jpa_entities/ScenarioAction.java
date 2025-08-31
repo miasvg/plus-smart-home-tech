@@ -13,21 +13,23 @@ public class ScenarioAction {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("scenarioId")
-    @JoinColumn(name = "scenario_id", nullable = false)
+    @JoinColumn(name = "scenario_id", nullable = false, insertable = false, updatable = false)
     private Scenario scenario;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("actionId")
-    @JoinColumn(name = "action_id", nullable = false)
+    @JoinColumn(name = "action_id", nullable = false, insertable = false, updatable = false)
     private Action action;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sensor_id", nullable = false)
+    @MapsId("sensorId")
+    @JoinColumn(name = "sensor_id", nullable = false, insertable = false, updatable = false)
     private Sensor sensor;
-
 
     public ScenarioAction(Action action, Sensor sensor) {
         this.action = action;
         this.sensor = sensor;
     }
 }
+
+
