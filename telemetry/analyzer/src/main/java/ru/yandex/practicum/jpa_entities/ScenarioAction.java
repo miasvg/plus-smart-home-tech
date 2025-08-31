@@ -29,6 +29,7 @@ public class ScenarioAction {
     public ScenarioAction(Action action, Sensor sensor) {
         this.action = action;
         this.sensor = sensor;
+        this.id = new ScenarioActionId();
     }
 }
 

@@ -29,7 +29,8 @@ public class ScenarioCondition {
     public ScenarioCondition(Condition condition, Sensor sensor) {
         this.condition = condition;
         this.sensor = sensor;
-        this.id = new ScenarioConditionId(null, condition.getId(), sensor.getId());
+        this.id = new ScenarioConditionId();
     }
+
 }
 
