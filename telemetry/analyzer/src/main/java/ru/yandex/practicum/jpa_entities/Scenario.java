@@ -27,8 +27,8 @@ public class Scenario {
     private String name;
 
     @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ScenarioCondition> conditions = new ArrayList<>();
+    private Set<ScenarioCondition> conditions = new HashSet<>();
 
     @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ScenarioAction> actions = new ArrayList<>();
+    private Set<ScenarioAction> actions = new HashSet<>();
 }
