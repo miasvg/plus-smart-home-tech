@@ -32,17 +32,37 @@ public class HubRouterClientService {
     }
 
     private DeviceActionRequest buildActionRequest(Action action) {
+        // Определяем значение для действия
+        Integer value = action.getValue();
+        switch (action.getType()) {
+            case SET_VALUE -> {
+                if (value == null) {
+                    throw new IllegalStateException("SET_VALUE action must have a non-null value");
+                }
+            }
+            case ACTIVATE, DEACTIVATE, INVERSE -> {
+                // Для этих действий значение необязательно, подставляем 0 если null
+                if (value == null) {
+                    value = 0;
+                }
+            }
+            default -> throw new IllegalArgumentException("Unsupported action type: " + action.getType());
+        }
+
+        DeviceActionProto deviceActionProto = DeviceActionProto.newBuilder()
+                .setSensorId(action.getSensor().getId())
+                .setType(actionTypeProto(action.getType()))
+                .setValue(value)
+                .build();
+
         return DeviceActionRequest.newBuilder()
                 .setHubId(action.getScenario().getHubId())
                 .setScenarioName(action.getScenario().getName())
-                .setAction(DeviceActionProto.newBuilder()
-                        .setSensorId(action.getSensor().getId())
-                        .setType(actionTypeProto(action.getType()))
-                        .setValue(action.getValue())
-                        .build())
+                .setAction(deviceActionProto)
                 .setTimestamp(setTimestamp())
                 .build();
     }
+
 
     private ActionTypeProto actionTypeProto(ActionTypeAvro actionType) {
         return switch (actionType) {
