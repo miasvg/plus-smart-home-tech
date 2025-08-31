@@ -13,10 +13,7 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.jpa_entities.*;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 import ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro;
-import ru.yandex.practicum.repositories.ScenarioRepository;
-import ru.yandex.practicum.repositories.SensorRepository;
-import ru.yandex.practicum.repositories.ActionRepository;
-import ru.yandex.practicum.repositories.ConditionRepository;
+import ru.yandex.practicum.repositories.*;
 
 import javax.annotation.PreDestroy;
 import java.time.Duration;
@@ -34,6 +31,8 @@ public class HubEventProcessor implements Runnable {
     private final ScenarioRepository scenarioRepository;
     private final ConditionRepository conditionRepository;
     private final ActionRepository actionRepository;
+    private final ScenarioConditionRepository scenarioConditionRepository;
+    private final ScenarioActionRepository scenarioActionRepository;
     private final Deserializer<HubEventAvro> hubEventDeserializer;
 
     @Value("${kafka.bootstrap-servers}")
@@ -128,18 +127,26 @@ public class HubEventProcessor implements Runnable {
     }
 
     private void processScenarioAdded(HubEventAvro event, String hubId) {
-        var payload = (ScenarioAddedEventAvro) event.getPayload();
+        var payload = (ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro) event.getPayload();
 
-        // Удаляем существующий сценарий с таким именем
+        // Если сценарий с таким именем уже есть — удалим
         scenarioRepository.findByHubIdAndName(hubId, payload.getName())
-                .ifPresent(scenarioRepository::delete);
+                .ifPresent(existing -> {
+                    // удаляем все связанные условия и действия
+                    scenarioConditionRepository.deleteAll(existing.getConditions());
+                    scenarioActionRepository.deleteAll(existing.getActions());
+                    scenarioRepository.delete(existing);
+                });
 
+        // 1. Создаём и сохраняем новый сценарий
         Scenario scenario = new Scenario();
         scenario.setHubId(hubId);
         scenario.setName(payload.getName());
+        scenario = scenarioRepository.save(scenario); // ID присвоен
 
-        // --- Обработка условий ---
+        // 2. Сохраняем условия
         for (var conditionAvro : payload.getConditions()) {
+            // Сохраняем Condition отдельно
             Condition condition = new Condition();
             condition.setType(conditionAvro.getType());
             condition.setOperation(conditionAvro.getOperation());
@@ -148,42 +155,50 @@ public class HubEventProcessor implements Runnable {
             }
             condition = conditionRepository.save(condition);
 
+            // Получаем или создаём Sensor
             Sensor sensor = sensorRepository.findById(conditionAvro.getSensorId())
                     .orElseGet(() -> sensorRepository.save(new Sensor(conditionAvro.getSensorId(), hubId)));
 
+            // Создаём ScenarioCondition и сохраняем
             ScenarioCondition sc = new ScenarioCondition();
             sc.setScenario(scenario);
             sc.setCondition(condition);
             sc.setSensor(sensor);
-            scenario.getConditions().add(sc);
+
+            scenarioConditionRepository.save(sc);
         }
 
-        // --- Обработка действий ---
+        // 3. Сохраняем действия
         for (var actionAvro : payload.getActions()) {
+            // Сохраняем Action отдельно
             Action action = new Action();
             action.setType(actionAvro.getType());
             action.setValue(actionAvro.getValue());
             action = actionRepository.save(action);
 
+            // Получаем или создаём Sensor
             Sensor sensor = sensorRepository.findById(actionAvro.getSensorId())
                     .orElseGet(() -> sensorRepository.save(new Sensor(actionAvro.getSensorId(), hubId)));
 
-            ScenarioAction sa = new ScenarioAction();
+            // Формируем составной ключ для ScenarioAction
             ScenarioActionId saId = new ScenarioActionId();
-            saId.setScenarioId(null); // Hibernate сам присвоит после сохранения Scenario
+            saId.setScenarioId(scenario.getId());
             saId.setActionId(action.getId());
             saId.setSensorId(sensor.getId());
-            sa.setId(saId);
 
+            ScenarioAction sa = new ScenarioAction();
+            sa.setId(saId);
             sa.setScenario(scenario);
             sa.setAction(action);
             sa.setSensor(sensor);
 
-            scenario.getActions().add(sa);
+            scenarioActionRepository.save(sa);
         }
 
-        scenarioRepository.save(scenario);
+        log.info("Scenario added: {} for hub: {} with {} conditions and {} actions",
+                payload.getName(), hubId, payload.getConditions().size(), payload.getActions().size());
     }
+
 
 
 
