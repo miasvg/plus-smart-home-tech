@@ -5,8 +5,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.config.KafkaConfig;
+import ru.yandex.practicum.deserializers.HubEventDeserializerAnalyzer;
+import ru.yandex.practicum.deserializers.SensorsSnapshotDeserializer;
 import ru.yandex.practicum.dto.ActionType;
 import ru.yandex.practicum.dto.ConditionOperation;
 import ru.yandex.practicum.dto.ConditionType;
@@ -17,6 +21,7 @@ import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 import ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro;
 import ru.yandex.practicum.repositories.*;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.time.Duration;
 import java.util.*;
@@ -27,12 +32,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @RequiredArgsConstructor
 public class HubEventProcessor implements Runnable {
 
-    private final Consumer<String, HubEventAvro> consumer;
+    private final KafkaConfig kafkaProperties;
+    private Consumer<String, HubEventAvro> consumer;
     private final HubHandler hubHandler;
 
     @Value("${topic.hub-event-topic}")
     private String topic;
 
+    @PostConstruct
+    public void init() {
+        // собрали consumer из пропертей
+        this.consumer = new KafkaConsumer<>(
+                kafkaProperties.hubEventConsumerFactory().getConfigurationProperties(),
+                new StringDeserializer(),
+                new HubEventDeserializerAnalyzer()
+        );
+    }
     @Override
     public void run() {
         try {
