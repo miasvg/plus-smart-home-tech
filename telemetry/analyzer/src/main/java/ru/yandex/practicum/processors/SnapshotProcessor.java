@@ -34,7 +34,7 @@ public class SnapshotProcessor implements Runnable {
     private Consumer<String, SensorsSnapshotAvro> consumer;
     private final SnapshotHandler snapshotHandler;
 
-    @Value("${topic.snapshots-topic}")
+    @Value("${kafka.topics.snapshots}")
     private String topic;
 
     @PostConstruct

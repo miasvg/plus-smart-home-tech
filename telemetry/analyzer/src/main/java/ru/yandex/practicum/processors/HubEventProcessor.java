@@ -36,7 +36,7 @@ public class HubEventProcessor implements Runnable {
     private Consumer<String, HubEventAvro> consumer;
     private final HubHandler hubHandler;
 
-    @Value("${topic.hub-event-topic}")
+    @Value("${kafka.topics.hubs}")
     private String topic;
 
     @PostConstruct
