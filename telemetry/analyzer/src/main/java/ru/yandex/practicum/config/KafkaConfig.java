@@ -36,7 +36,7 @@ public class KafkaConfig {
     public Deserializer<SensorsSnapshotAvro> snapshotDeserializer() {
         return new SensorsSnapshotDeserializer();
     }
-    @Bean
+  /*  @Bean
     public ConsumerFactory<String, HubEventAvro> hubEventConsumerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.CLIENT_ID_CONFIG, environment.getProperty("spring.kafka.consumer.client-id"));
@@ -48,7 +48,7 @@ public class KafkaConfig {
         return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), hubEventDeserializer());
     }
 
-    /*@Bean
+    @Bean
     public ConsumerFactory<String, SensorsSnapshotAvro> snapshotConsumerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.CLIENT_ID_CONFIG, environment.getProperty("spring.kafka.consumer.snapshots-client-id"));
