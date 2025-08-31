@@ -5,32 +5,26 @@ import lombok.*;
 
 @Entity
 @Table(name = "scenario_actions")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class ScenarioAction {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @EmbeddedId
-    private ScenarioActionId id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("scenarioId")
-    @JoinColumn(name = "scenario_id", nullable = false, insertable = false, updatable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "scenario_id")
     private Scenario scenario;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("actionId")
-    @JoinColumn(name = "action_id", nullable = false, insertable = false, updatable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "action_id")
     private Action action;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("sensorId")
-    @JoinColumn(name = "sensor_id", nullable = false, insertable = false, updatable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "sensor_id")
     private Sensor sensor;
-
-    public ScenarioAction(Action action, Sensor sensor) {
-        this.action = action;
-        this.sensor = sensor;
-        this.id = new ScenarioActionId();
-    }
 }
 
 

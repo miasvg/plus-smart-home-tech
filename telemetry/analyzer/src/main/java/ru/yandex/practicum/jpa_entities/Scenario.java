@@ -11,14 +11,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Entity
-@Table(name = "scenarios", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"hub_id", "name"})
-})
-@Getter
-@Setter
+@Table(name = "scenarios", uniqueConstraints = @UniqueConstraint(columnNames = {"hub_id", "name"}))
+@Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(of = "id")
 public class Scenario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,9 +27,8 @@ public class Scenario {
     private String name;
 
     @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<ScenarioCondition> conditions = new HashSet<>();
+    private List<ScenarioCondition> conditions = new ArrayList<>();
 
     @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<ScenarioAction> actions = new HashSet<>();
-
+    private List<ScenarioAction> actions = new ArrayList<>();
 }

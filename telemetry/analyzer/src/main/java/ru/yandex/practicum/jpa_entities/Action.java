@@ -2,6 +2,7 @@ package ru.yandex.practicum.jpa_entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import ru.yandex.practicum.dto.ActionType;
 import ru.yandex.practicum.kafka.telemetry.event.ActionTypeAvro;
 
 import java.util.ArrayList;
@@ -13,7 +14,6 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(of = "id")
 public class Action {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,8 +21,8 @@ public class Action {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
-    private ActionTypeAvro type;
+    private ActionType type;
 
-    @Column(name = "value")
+    @Column(name = "value", nullable = true)
     private Integer value;
 }

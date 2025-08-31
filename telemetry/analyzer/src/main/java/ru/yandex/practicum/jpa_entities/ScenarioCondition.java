@@ -5,32 +5,25 @@ import lombok.*;
 
 @Entity
 @Table(name = "scenario_conditions")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class ScenarioCondition {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @EmbeddedId
-    private ScenarioConditionId id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("scenarioId")
-    @JoinColumn(name = "scenario_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "scenario_id")
     private Scenario scenario;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("conditionId")
-    @JoinColumn(name = "condition_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "condition_id")
     private Condition condition;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("sensorId")
-    @JoinColumn(name = "sensor_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "sensor_id")
     private Sensor sensor;
-
-    public ScenarioCondition(Condition condition, Sensor sensor) {
-        this.condition = condition;
-        this.sensor = sensor;
-        this.id = new ScenarioConditionId();
-    }
-
 }
 

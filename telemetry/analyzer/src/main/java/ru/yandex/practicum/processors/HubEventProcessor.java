@@ -10,6 +10,9 @@ import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.dto.ActionType;
+import ru.yandex.practicum.dto.ConditionOperation;
+import ru.yandex.practicum.dto.ConditionType;
 import ru.yandex.practicum.jpa_entities.*;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 import ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro;
@@ -129,88 +132,74 @@ public class HubEventProcessor implements Runnable {
     private void processScenarioAdded(HubEventAvro event, String hubId) {
         var payload = (ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro) event.getPayload();
 
-        // Если сценарий с таким именем уже есть — удалим
+        // Удаляем существующий сценарий с таким именем
         scenarioRepository.findByHubIdAndName(hubId, payload.getName())
-                .ifPresent(existing -> {
-                    // удаляем все связанные условия и действия
-                    scenarioConditionRepository.deleteAll(existing.getConditions());
-                    scenarioActionRepository.deleteAll(existing.getActions());
-                    scenarioRepository.delete(existing);
-                });
+                .ifPresent(existing -> scenarioRepository.delete(existing));
 
-        // 1. Создаём и сохраняем новый сценарий
         Scenario scenario = new Scenario();
         scenario.setHubId(hubId);
         scenario.setName(payload.getName());
-        scenario = scenarioRepository.save(scenario); // ID присвоен
 
-        // 2. Сохраняем условия
+        // --- Process conditions ---
         for (var conditionAvro : payload.getConditions()) {
-            // Сохраняем Condition отдельно
             Condition condition = new Condition();
-            condition.setType(conditionAvro.getType());
-            condition.setOperation(conditionAvro.getOperation());
+            // Преобразуем Avro enum в JPA enum вручную
+            condition.setType(ConditionType.valueOf(conditionAvro.getType().name()));
+            condition.setOperation(ConditionOperation.valueOf(conditionAvro.getOperation().name()));
             if (conditionAvro.getValue() instanceof Integer) {
                 condition.setValue((Integer) conditionAvro.getValue());
             }
             condition = conditionRepository.save(condition);
 
-            // Получаем или создаём Sensor
-            Sensor sensor = sensorRepository.findById(conditionAvro.getSensorId())
-                    .orElseGet(() -> sensorRepository.save(new Sensor(conditionAvro.getSensorId(), hubId)));
+            String sensorId = conditionAvro.getSensorId();
+            Sensor sensor = sensorRepository.findById(sensorId)
+                    .orElseGet(() -> sensorRepository.save(new Sensor(sensorId, hubId)));
 
-            // Создаём ScenarioCondition и сохраняем
             ScenarioCondition sc = new ScenarioCondition();
             sc.setScenario(scenario);
             sc.setCondition(condition);
             sc.setSensor(sensor);
 
-            scenarioConditionRepository.save(sc);
+            scenario.getConditions().add(sc);
         }
 
-        // 3. Сохраняем действия
+        // --- Process actions ---
         for (var actionAvro : payload.getActions()) {
-            // Сохраняем Action отдельно
             Action action = new Action();
-            action.setType(actionAvro.getType());
+            action.setType(ActionType.valueOf(actionAvro.getType().name()));
             action.setValue(actionAvro.getValue());
             action = actionRepository.save(action);
 
-            // Получаем или создаём Sensor
-            Sensor sensor = sensorRepository.findById(actionAvro.getSensorId())
-                    .orElseGet(() -> sensorRepository.save(new Sensor(actionAvro.getSensorId(), hubId)));
-
-            // Формируем составной ключ для ScenarioAction
-            ScenarioActionId saId = new ScenarioActionId();
-            saId.setScenarioId(scenario.getId());
-            saId.setActionId(action.getId());
-            saId.setSensorId(sensor.getId());
+            String sensorId = actionAvro.getSensorId();
+            Sensor sensor = sensorRepository.findById(sensorId)
+                    .orElseGet(() -> sensorRepository.save(new Sensor(sensorId, hubId)));
 
             ScenarioAction sa = new ScenarioAction();
-            sa.setId(saId);
             sa.setScenario(scenario);
             sa.setAction(action);
             sa.setSensor(sensor);
 
-            scenarioActionRepository.save(sa);
+            scenario.getActions().add(sa);
         }
 
+        // Сохраняем сценарий
+        scenarioRepository.save(scenario);
+
         log.info("Scenario added: {} for hub: {} with {} conditions and {} actions",
-                payload.getName(), hubId, payload.getConditions().size(), payload.getActions().size());
+                payload.getName(), hubId, scenario.getConditions().size(), scenario.getActions().size());
     }
-
-
-
-
 
     private void processScenarioRemoved(HubEventAvro event, String hubId) {
         var payload = (ru.yandex.practicum.kafka.telemetry.event.ScenarioRemovedEventAvro) event.getPayload();
 
-        scenarioRepository.findByHubIdAndName(hubId, payload.getName().toString())
-                .ifPresent(scenarioRepository::delete);
-
-        log.info("Scenario removed: {} from hub: {}", payload.getName(), hubId);
+        scenarioRepository.findByHubIdAndName(hubId, payload.getName())
+                .ifPresent(scenario -> {
+                    scenarioRepository.delete(scenario);
+                    log.info("Scenario removed: {} for hub: {}", payload.getName(), hubId);
+                });
     }
+
+
 
     public void start() {
         if (thread == null || !thread.isAlive()) {
