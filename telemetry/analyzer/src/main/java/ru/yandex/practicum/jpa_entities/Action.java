@@ -2,18 +2,15 @@ package ru.yandex.practicum.jpa_entities;
 
 import jakarta.persistence.*;
 import lombok.*;
-import ru.yandex.practicum.dto.ActionType;
 import ru.yandex.practicum.kafka.telemetry.event.ActionTypeAvro;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "actions")
-@Getter
-@Setter
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@SecondaryTable(name = "scenario_actions", pkJoinColumns = @PrimaryKeyJoinColumn(name = "action_id"))
 public class Action {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,8 +18,16 @@ public class Action {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
-    private ActionType type;
+    private ActionTypeAvro type;
 
-    @Column(name = "value", nullable = true)
+    @ManyToOne
+    @JoinColumn(name = "scenario_id", table = "scenario_actions")
+    private Scenario scenario;
+
+    @ManyToOne
+    @JoinColumn(name = "sensor_id", table = "scenario_actions")
+    private Sensor sensor;
+
+    @Column(name = "value")
     private Integer value;
 }

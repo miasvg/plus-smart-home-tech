@@ -2,10 +2,7 @@ package ru.yandex.practicum.processors;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +10,8 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.dto.ActionType;
 import ru.yandex.practicum.dto.ConditionOperation;
 import ru.yandex.practicum.dto.ConditionType;
+import ru.yandex.practicum.handlers.HubEventHandler;
+import ru.yandex.practicum.handlers.HubHandler;
 import ru.yandex.practicum.jpa_entities.*;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 import ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro;
@@ -20,205 +19,50 @@ import ru.yandex.practicum.repositories.*;
 
 import javax.annotation.PreDestroy;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class HubEventProcessor implements Runnable {
-    private final SensorRepository sensorRepository;
-    private final ScenarioRepository scenarioRepository;
-    private final ConditionRepository conditionRepository;
-    private final ActionRepository actionRepository;
-    private final ScenarioConditionRepository scenarioConditionRepository;
-    private final ScenarioActionRepository scenarioActionRepository;
-    private final Deserializer<HubEventAvro> hubEventDeserializer;
 
-    @Value("${kafka.bootstrap-servers}")
-    private String bootstrapServers;
+    private final Consumer<String, HubEventAvro> consumer;
+    private final HubHandler hubHandler;
 
-    @Value("${kafka.topics.hubs}")
-    private String hubsTopic;
-
-    @Value("${kafka.consumer.group-id}")
-    private String groupId;
-
-    private KafkaConsumer<String, HubEventAvro> consumer;
-    private final AtomicBoolean running = new AtomicBoolean(false);
-    private Thread thread;
+    @Value("${topic.hub-event-topic}")
+    private String topic;
 
     @Override
     public void run() {
-        running.set(true);
         try {
-            Properties props = new Properties();
-            props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-            props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId + "-hub");
-            props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
-            props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, hubEventDeserializer.getClass().getName());
-            props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-            props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+            consumer.subscribe(List.of(topic));
+            Runtime.getRuntime().addShutdownHook(new Thread(consumer::wakeup));
+            Map<String, HubEventHandler> mapBuilder = hubHandler.getHandlers();
 
-            consumer = new KafkaConsumer<>(props);
-            consumer.subscribe(Collections.singletonList(hubsTopic));
-
-            log.info("HubEventProcessor started for topic: {}", hubsTopic);
-
-            while (running.get()) {
-                ConsumerRecords<String, HubEventAvro> records = consumer.poll(Duration.ofMillis(100));
+            while (true) {
+                ConsumerRecords<String, HubEventAvro> records = consumer.poll(Duration.ofMillis(1000));
 
                 for (ConsumerRecord<String, HubEventAvro> record : records) {
-                    try {
-                        processHubEvent(record.value());
-                        consumer.commitSync();
-                    } catch (Exception e) {
-                        log.error("Error processing hub event", e);
+                    HubEventAvro event = record.value();
+                    String payloadName = event.getPayload().getClass().getSimpleName();
+                    log.info("Получение хаба {}", payloadName);
+                    if (mapBuilder.containsKey(payloadName)) {
+                        mapBuilder.get(payloadName).handle(event);
+                    } else {
+                        throw new IllegalArgumentException("Нет обработчика для события " + event);
                     }
                 }
+                consumer.commitSync();
             }
-        } catch (WakeupException e) {
-            // Ignore for shutdown
+        } catch (WakeupException ignored) {
         } catch (Exception e) {
-            log.error("Error in HubEventProcessor", e);
+            log.error("Ошибка получения данных {}", topic);
         } finally {
-            if (consumer != null) {
-                consumer.close();
-            }
-            running.set(false);
-            log.info("HubEventProcessor stopped");
-        }
-    }
-
-    private void processHubEvent(HubEventAvro event) {
-        String hubId = event.getHubId();
-
-        switch (event.getPayload().getClass().getSimpleName()) {
-            case "DeviceAddedEventAvro":
-                processDeviceAdded(event, hubId);
-                break;
-            case "DeviceRemovedEventAvro":
-                processDeviceRemoved(event, hubId);
-                break;
-            case "ScenarioAddedEventAvro":
-                processScenarioAdded(event, hubId);
-                break;
-            case "ScenarioRemovedEventAvro":
-                processScenarioRemoved(event, hubId);
-                break;
-            default:
-                log.warn("Unknown hub event type: {}", event.getPayload().getClass().getSimpleName());
-        }
-    }
-
-    private void processDeviceAdded(HubEventAvro event, String hubId) {
-        var payload = (ru.yandex.practicum.kafka.telemetry.event.DeviceAddedEventAvro) event.getPayload();
-
-        Sensor sensor = new Sensor(payload.getId(), hubId);
-        sensorRepository.save(sensor);
-        log.info("Device added: {} for hub: {}", payload.getId(), hubId);
-    }
-
-    private void processDeviceRemoved(HubEventAvro event, String hubId) {
-        var payload = (ru.yandex.practicum.kafka.telemetry.event.DeviceRemovedEventAvro) event.getPayload();
-
-        sensorRepository.deleteById(payload.getId());
-        log.info("Device removed: {} from hub: {}", payload.getId(), hubId);
-    }
-
-    private void processScenarioAdded(HubEventAvro event, String hubId) {
-        var payload = (ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro) event.getPayload();
-
-        // Удаляем существующий сценарий с таким именем
-        scenarioRepository.findByHubIdAndName(hubId, payload.getName())
-                .ifPresent(existing -> scenarioRepository.delete(existing));
-
-        Scenario scenario = new Scenario();
-        scenario.setHubId(hubId);
-        scenario.setName(payload.getName());
-
-        // --- Process conditions ---
-        for (var conditionAvro : payload.getConditions()) {
-            Condition condition = new Condition();
-            // Преобразуем Avro enum в JPA enum вручную
-            condition.setType(ConditionType.valueOf(conditionAvro.getType().name()));
-            condition.setOperation(ConditionOperation.valueOf(conditionAvro.getOperation().name()));
-            if (conditionAvro.getValue() instanceof Integer) {
-                condition.setValue((Integer) conditionAvro.getValue());
-            }
-            condition = conditionRepository.save(condition);
-
-            String sensorId = conditionAvro.getSensorId();
-            Sensor sensor = sensorRepository.findById(sensorId)
-                    .orElseGet(() -> sensorRepository.save(new Sensor(sensorId, hubId)));
-
-            ScenarioCondition sc = new ScenarioCondition();
-            sc.setScenario(scenario);
-            sc.setCondition(condition);
-            sc.setSensor(sensor);
-
-            scenario.getConditions().add(sc);
-        }
-
-        // --- Process actions ---
-        for (var actionAvro : payload.getActions()) {
-            Action action = new Action();
-            action.setType(ActionType.valueOf(actionAvro.getType().name()));
-            action.setValue(actionAvro.getValue());
-            action = actionRepository.save(action);
-
-            String sensorId = actionAvro.getSensorId();
-            Sensor sensor = sensorRepository.findById(sensorId)
-                    .orElseGet(() -> sensorRepository.save(new Sensor(sensorId, hubId)));
-
-            ScenarioAction sa = new ScenarioAction();
-            sa.setScenario(scenario);
-            sa.setAction(action);
-            sa.setSensor(sensor);
-
-            scenario.getActions().add(sa);
-        }
-
-        // Сохраняем сценарий
-        scenarioRepository.save(scenario);
-
-        log.info("Scenario added: {} for hub: {} with {} conditions and {} actions",
-                payload.getName(), hubId, scenario.getConditions().size(), scenario.getActions().size());
-    }
-
-    private void processScenarioRemoved(HubEventAvro event, String hubId) {
-        var payload = (ru.yandex.practicum.kafka.telemetry.event.ScenarioRemovedEventAvro) event.getPayload();
-
-        scenarioRepository.findByHubIdAndName(hubId, payload.getName())
-                .ifPresent(scenario -> {
-                    scenarioRepository.delete(scenario);
-                    log.info("Scenario removed: {} for hub: {}", payload.getName(), hubId);
-                });
-    }
-
-
-
-    public void start() {
-        if (thread == null || !thread.isAlive()) {
-            thread = new Thread(this, "HubEventProcessor");
-            thread.start();
-        }
-    }
-
-    @PreDestroy
-    public void shutdown() {
-        running.set(false);
-        if (consumer != null) {
-            consumer.wakeup();
-        }
-        if (thread != null) {
             try {
-                thread.join(5000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                consumer.commitSync();
+            } finally {
+                consumer.close();
             }
         }
     }

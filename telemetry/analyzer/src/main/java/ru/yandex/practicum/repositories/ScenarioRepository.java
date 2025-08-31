@@ -9,13 +9,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ScenarioRepository extends JpaRepository<Scenario, Long> {
+
     Optional<Scenario> findByHubIdAndName(String hubId, String name);
 
-    @EntityGraph(attributePaths = {
-            "conditions.condition",
-            "conditions.sensor",
-            "actions.action",
-            "actions.sensor"
-    })
     List<Scenario> findByHubId(String hubId);
 }
