@@ -41,7 +41,6 @@ public class HubRouterClientService {
                 }
             }
             case ACTIVATE, DEACTIVATE, INVERSE -> {
-                // Для этих действий значение необязательно, подставляем 0 если null
                 if (value == null) {
                     value = 0;
                 }
