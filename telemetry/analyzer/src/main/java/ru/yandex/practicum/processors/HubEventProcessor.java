@@ -30,11 +30,15 @@ public class HubEventProcessor implements Runnable {
     @Value("${kafka.bootstrap-servers}")
     private String bootstrapServers;
 
+    @Value("${kafka.consumer.group-id.hubs}")
+    private String groupId;
+
+
     @PostConstruct
     public void init() {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "hub-event-processor-group");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, HubEventDeserializerAnalyzer.class.getName());
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
