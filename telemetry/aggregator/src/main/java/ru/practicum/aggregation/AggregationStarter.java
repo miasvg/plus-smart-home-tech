@@ -29,6 +29,7 @@ import java.util.Properties;
 @RequiredArgsConstructor
 @Slf4j
 public class AggregationStarter {
+
     private final SnapshotAggregator snapshotAggregator;
 
     @Value("${spring.kafka.bootstrap-servers}")
@@ -40,15 +41,20 @@ public class AggregationStarter {
     @Value("${kafka.topics.snapshots}")
     private String snapshotsTopic;
 
+    @Value("${spring.kafka.consumer.group-id:aggregator-group}")
+    private String groupId;
+
+
+    private KafkaConsumer<String, SensorEventAvro> consumer;
+
     public void start() {
-        KafkaConsumer<String, SensorEventAvro> consumer = null;
         KafkaProducer<String, SensorsSnapshotAvro> producer = null;
 
         try {
             // Настройка consumer
             Properties consumerProps = new Properties();
             consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-            consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, "aggregator-group");
+            consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
             consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
             consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, SensorEventDeserializer.class);
             consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -70,35 +76,36 @@ public class AggregationStarter {
             while (true) {
                 ConsumerRecords<String, SensorEventAvro> records = consumer.poll(Duration.ofMillis(100));
 
-                for (ConsumerRecord<String, SensorEventAvro> record : records) {
-                    try {
-                        SensorEventAvro event = record.value();
-                        Optional<SensorsSnapshotAvro> updatedSnapshot = snapshotAggregator.updateState(event);
+                if (!records.isEmpty()) {
+                    for (ConsumerRecord<String, SensorEventAvro> record : records) {
+                        try {
+                            SensorEventAvro event = record.value();
+                            Optional<SensorsSnapshotAvro> updatedSnapshot = snapshotAggregator.updateState(event);
 
-                        if (updatedSnapshot.isPresent()) {
-                            SensorsSnapshotAvro snapshot = updatedSnapshot.get();
-                            ProducerRecord<String, SensorsSnapshotAvro> snapshotRecord =
-                                    new ProducerRecord<>(snapshotsTopic, snapshot.getHubId(), snapshot);
+                            if (updatedSnapshot.isPresent()) {
+                                SensorsSnapshotAvro snapshot = updatedSnapshot.get();
+                                ProducerRecord<String, SensorsSnapshotAvro> snapshotRecord =
+                                        new ProducerRecord<>(snapshotsTopic, snapshot.getHubId(), snapshot);
 
-                            producer.send(snapshotRecord, (metadata, exception) -> {
-                                if (exception != null) {
-                                    log.error("Ошибка отправки снапшота в Kafka", exception);
-                                } else {
-                                    log.debug("Снапшот отправлен в топик {}, offset: {}",
-                                            metadata.topic(), metadata.offset());
-                                }
-                            });
+                                producer.send(snapshotRecord, (metadata, exception) -> {
+                                    if (exception != null) {
+                                        log.error("Ошибка отправки снапшота в Kafka", exception);
+                                    } else {
+                                        log.debug("Снапшот отправлен в топик {}, offset: {}",
+                                                metadata.topic(), metadata.offset());
+                                    }
+                                });
+                            }
+                        } catch (Exception e) {
+                            log.error("Ошибка обработки события", e);
                         }
-                    } catch (Exception e) {
-                        log.error("Ошибка обработки события", e);
                     }
+                    consumer.commitSync();
                 }
-
-                consumer.commitSync();
             }
 
         } catch (WakeupException ignored) {
-            // Игнорируем для корректного завершения
+            log.info("Consumer wakeup — завершение работы");
         } catch (Exception e) {
             log.error("Ошибка во время обработки событий", e);
         } finally {
@@ -118,6 +125,10 @@ public class AggregationStarter {
 
     @PreDestroy
     public void shutdown() {
-        // Метод для корректного завершения
+        if (consumer != null) {
+            log.info("Вызван shutdown, прерываем poll() через wakeup()");
+            consumer.wakeup();
+        }
     }
 }
+
