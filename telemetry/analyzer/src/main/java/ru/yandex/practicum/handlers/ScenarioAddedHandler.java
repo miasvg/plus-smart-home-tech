@@ -62,7 +62,7 @@ public class ScenarioAddedHandler implements HubEventHandler {
                         .scenario(scenario)
                         .type(c.getType())
                         .operation(c.getOperation())
-                        .value(setValue(c.getValue()))
+                        .value(setConditionValue(c.getValue()))
                         .build())
                 .collect(Collectors.toSet());
     }
@@ -73,18 +73,34 @@ public class ScenarioAddedHandler implements HubEventHandler {
                         .sensor(sensorRepository.findById(action.getSensorId()).orElseThrow())
                         .scenario(scenario)
                         .type(action.getType())
-                        .value(action.getValue())
+                        .value(setActionValue(action.getValue()))
                         .build())
                 .collect(Collectors.toSet());
     }
 
-    private Integer setValue(Object value) {
-        if (value instanceof Integer) {
-            return (Integer) value;
-        } else {
-            return (Boolean) value ? 1 : 0;
+    private Integer setConditionValue(Object value) {
+        if (value == null) {
+            return null;
         }
+        if (value instanceof Integer i) {
+            return i;
+        }
+        if (value instanceof Boolean b) {
+            return b ? 1 : 0;
+        }
+        throw new IllegalArgumentException("Unsupported condition value type: " + value.getClass());
     }
+
+    private Integer setActionValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Integer i) {
+            return i;
+        }
+        throw new IllegalArgumentException("Unsupported action value type: " + value.getClass());
+    }
+
 
     private Boolean checkSensorsInScenarioConditions(ScenarioAddedEventAvro scenarioAddedEvent, String hubId) {
         return sensorRepository.existsByIdInAndHubId(scenarioAddedEvent.getConditions().stream()

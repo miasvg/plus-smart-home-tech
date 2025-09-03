@@ -70,7 +70,9 @@ public class SnapshotHandler {
                 return handleOperation(condition, climateSensor.getHumidity());
             }
             case null -> {
-                return false;
+                throw new IllegalArgumentException(
+                        "Неизвестный тип условия или null: " + condition.getType()
+                );
             }
         }
     }
