@@ -1,4 +1,4 @@
-package ru.practicum.deserialisers;
+package deserialisers_aggregator;
 
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;

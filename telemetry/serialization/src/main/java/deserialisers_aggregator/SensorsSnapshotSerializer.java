@@ -1,4 +1,4 @@
-package ru.practicum.deserialisers;
+package deserialisers_aggregator;
 
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
