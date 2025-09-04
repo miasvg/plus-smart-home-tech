@@ -1,5 +1,6 @@
 package ru.yandex.practicum.processors;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.*;
@@ -13,7 +14,7 @@ import ru.yandex.practicum.handlers.HubHandler;
 import ru.yandex.practicum.kafka.HubEventDeserializerAnalyzer;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 
-import javax.annotation.PostConstruct;
+
 import java.time.Duration;
 import java.util.*;
 

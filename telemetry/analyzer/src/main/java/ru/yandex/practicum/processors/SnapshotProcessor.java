@@ -1,6 +1,7 @@
 package ru.yandex.practicum.processors;
 
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.*;
@@ -11,7 +12,6 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.handlers.SnapshotHandler;
 import ru.yandex.practicum.kafka.SensorsSnapshotDeserializer;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
-import javax.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
