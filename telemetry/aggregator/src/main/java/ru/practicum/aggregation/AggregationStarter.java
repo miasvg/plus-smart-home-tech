@@ -1,7 +1,5 @@
 package ru.practicum.aggregation;
 
-import deserialisers_aggregator.SensorEventDeserializer;
-import deserialisers_aggregator.SensorsSnapshotSerializer;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +16,8 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import ru.yandex.practicum.kafka.SensorEventDeserializer;
+import ru.yandex.practicum.kafka.SensorsSnapshotSerializer;
 import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 

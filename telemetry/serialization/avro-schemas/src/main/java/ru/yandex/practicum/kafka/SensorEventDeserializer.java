@@ -1,4 +1,4 @@
-package deserialisers_aggregator;
+package ru.yandex.practicum.kafka;
 
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
@@ -9,3 +9,4 @@ public class SensorEventDeserializer extends BaseAvroDeserializer<SensorEventAvr
         super(SensorEventAvro.getClassSchema());
     }
 }
+

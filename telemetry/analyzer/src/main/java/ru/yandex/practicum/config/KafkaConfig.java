@@ -1,11 +1,12 @@
 package ru.yandex.practicum.config;
 
-import deserializers_analyzer.HubEventDeserializerAnalyzer;
-import deserializers_analyzer.SensorsSnapshotDeserializer;
+
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import ru.yandex.practicum.kafka.HubEventDeserializerAnalyzer;
+import ru.yandex.practicum.kafka.SensorsSnapshotDeserializer;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 
