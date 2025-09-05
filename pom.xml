@@ -33,9 +33,9 @@
         <lombok.version>1.18.38</lombok.version>
         <slf4j.version>2.0.1</slf4j.version>
         <spring-kafka.version>3.3.8</spring-kafka.version>
-        <lakarta-annotation.version>2.1.1</lakarta-annotation.version>
+        <jakarta-annotation.version>2.1.1</jakarta-annotation.version>
         <jakarta-validation.version>3.1.1</jakarta-validation.version>
-        <netty-shaded.version>1.59.0</netty-shaded.version>
+
 
         <!--       Plugins       -->
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
@@ -127,7 +127,7 @@
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-netty-shaded</artifactId>
-                <version>${netty-shaded.version}</version>
+                <version>${grpc.version}</version>
             </dependency>
 
             <dependency>
