@@ -1,0 +1,31 @@
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+  main:
+    web-application-type: none
+
+kafka:
+  topics:
+    sensors: telemetry.sensors.v1
+    hubs: telemetry.hubs.v1
+
+grpc:
+  server:
+    port: 59091
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+# logging:
+#   level:
+#     io.grpc: DEBUG
+#     net.devh: DEBUG
+#     org.springframework: DEBUG

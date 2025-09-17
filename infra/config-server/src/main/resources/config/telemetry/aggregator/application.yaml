@@ -1,0 +1,41 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: aggregator
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: aggregator-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: ru.yandex.practicum.kafka.SensorEventDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      max-poll-records: 500
+      isolation-level: read_committed
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: ru.yandex.practicum.kafka.SensorsSnapshotSerializer
+      acks: all
+      retries: 3
+      compression-type: snappy
+      enable-idempotence: true
+
+kafka:
+  topics:
+    sensors: telemetry.sensors.v1
+    snapshots: telemetry.snapshots.v1
+
+aggregator:
+  poll-timeout-ms: 100
+  max-poll-interval-ms: 300000
+
+logging:
+  level:
+    ru.yandex.practicum: INFO
+    org.apache.kafka: WARN
+    org.springframework: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
