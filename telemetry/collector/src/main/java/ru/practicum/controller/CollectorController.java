@@ -1,43 +1,59 @@
 package ru.practicum.controller;
 
-import jakarta.validation.Valid;
+import com.google.protobuf.Empty;
+import io.grpc.Status;
+import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import net.devh.boot.grpc.server.service.GrpcService;
+import org.springframework.stereotype.Service;
+import ru.practicum.mapper.HubAndSensorMapper;
 import ru.practicum.service.TelemetryService;
-import ru.practicum.dto.sensors.SensorEvent;
-import ru.practicum.dto.hubs.HubEvent;
+import ru.practicum.telemetry.message.HubEventProto;
+import ru.practicum.telemetry.message.SensorEventProto;
+import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
+import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
+import ru.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
 
 
-@RestController
-@RequestMapping("/events") // Используем путь из OpenAPI спецификации
+@GrpcService
 @RequiredArgsConstructor
 @Slf4j
-public class CollectorController {
-
+public class CollectorController extends CollectorControllerGrpc.CollectorControllerImplBase {
     private final TelemetryService telemetryService;
+    private final HubAndSensorMapper mapper;
 
-    @PostMapping("/sensors")
-    public ResponseEntity<Void> collectSensorEvent(@Valid @RequestBody SensorEvent event) {
-        log.info("Получен POST-запрос на /events/sensors с телом: {}", event);
-        telemetryService.send(event);
-        return ResponseEntity.ok().build();
+    @Override
+    public void collectSensorEvent(SensorEventProto request, StreamObserver<Empty> responseObserver) {
+        try {
+            log.info("Получен gRPC запрос на collectSensorEvent: {}", request);
+            SensorEventAvro event = mapper.toAvro(request);
+            telemetryService.send(event);
+
+            responseObserver.onNext(Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("Ошибка обработки SensorEvent", e);
+            responseObserver.onError(Status.INTERNAL
+                    .withDescription(e.getMessage())
+                    .asRuntimeException());
+        }
     }
 
-    /**
-     * Эндпоинт для обработки событий от хаба.
-     * @param event DTO события, которое будет автоматически десериализовано
-     * в нужный подтип.
-     * @return HTTP 200 OK в случае успешной обработки.
-     */
-    @PostMapping("/hubs")
-    public ResponseEntity<Void> collectHubEvent(@Valid @RequestBody HubEvent event) {
-        log.info("Получен POST-запрос на /events/hubs с телом: {}", event);
-        telemetryService.send(event);
-        return ResponseEntity.ok().build();
+    @Override
+    public void collectHubEvent(HubEventProto request, StreamObserver<Empty> responseObserver) {
+        try {
+            log.info("Получен gRPC запрос на collectHubEvent: {}", request);
+            HubEventAvro event = mapper.toAvro(request);
+            telemetryService.send(event);
+
+            responseObserver.onNext(Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("Ошибка обработки HubEvent", e);
+            responseObserver.onError(Status.INTERNAL
+                    .withDescription(e.getMessage())
+                    .asRuntimeException());
+        }
     }
 }
