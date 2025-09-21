@@ -13,6 +13,7 @@ import ru.yandex.practicum.enums.ProductState;
 import ru.yandex.practicum.enums.QuantityState;
 
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Getter
@@ -41,5 +42,5 @@ public class ProductDto {
     ProductCategory productCategory;
 
     @Positive
-    Float price;
+    BigDecimal price;
 }

@@ -22,13 +22,13 @@ import ru.yandex.practicum.dto.AddProductToWarehouseRequest;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class WarehouseServiceImpl implements WarehouseService {
 
     private final WarehouseRepository warehouseRepository;
     private final ShoppingStoreClient shoppingStoreClient;
 
     @Override
+    @Transactional
     public void addProduct(NewProductInWarehouseRequest requestDto) {
         UUID productId = requestDto.getProductId();
 
@@ -78,6 +78,7 @@ public class WarehouseServiceImpl implements WarehouseService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public AddressDto getAddress() {
         String address = Address.CURRENT_ADDRESS;
         return AddressDto.builder()
@@ -90,6 +91,7 @@ public class WarehouseServiceImpl implements WarehouseService {
     }
 
     @Override
+    @Transactional
     public void updateProductQuantity(AddProductToWarehouseRequest requestDto) {
         UUID productId = requestDto.getProductId();
         Warehouse product = warehouseRepository.findById(productId).orElseThrow(

@@ -2,6 +2,8 @@ package ru.yandex.practicum.jpa_entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.FieldDefaults;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -11,15 +13,16 @@ import java.util.Set;
 @Getter @Setter @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class Scenario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+     Long id;
 
     @Column(name = "hub_id", nullable = false)
-    private String hubId;
+     String hubId;
 
     @Column(name = "name", nullable = false)
-    private String name;
+     String name;
 }

@@ -19,18 +19,19 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class StoreServiceImpl implements StoreService {
     private final ProductRepository productRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public Page<ProductDto> getProducts(ProductCategory category, Pageable pageable) {
         Page<Product> products = productRepository.findAllByProductCategory(category, pageable);
         return products.map(ProductMapper::mapToProductDto);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ProductDto getProductById(UUID productId) {
         Product product = checkProductId(productId);
         return ProductMapper.mapToProductDto(product);

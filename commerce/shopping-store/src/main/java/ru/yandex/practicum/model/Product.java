@@ -7,16 +7,19 @@ import ru.yandex.practicum.enums.ProductCategory;
 import ru.yandex.practicum.enums.ProductState;
 import ru.yandex.practicum.enums.QuantityState;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
 @Table(name = "products")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
-@Builder
 @AllArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Product {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "product_id", updatable = false, nullable = false)
@@ -31,18 +34,18 @@ public class Product {
     @Column(name = "image_src")
     String imageSrc;
 
-    @Column(name = "quantity_state")
     @Enumerated(EnumType.STRING)
+    @Column(name = "quantity_state")
     QuantityState quantityState;
 
-    @Column(name = "product_state")
     @Enumerated(EnumType.STRING)
+    @Column(name = "product_state")
     ProductState productState;
 
-    @Column(name = "product_category")
     @Enumerated(EnumType.STRING)
+    @Column(name = "product_category")
     ProductCategory productCategory;
 
     @Column(name = "price", nullable = false)
-    Float price;
+    BigDecimal price;
 }

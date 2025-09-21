@@ -11,12 +11,14 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "shopping_carts")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ShoppingCart {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "shopping_cart_id")
@@ -30,9 +32,14 @@ public class ShoppingCart {
     CartState cartState;
 
     @ElementCollection
-    @CollectionTable(name = "shopping_carts_items",
-            joinColumns = @JoinColumn(name = "cart_id"))
+    @CollectionTable(
+            name = "shopping_carts_items",
+            joinColumns = @JoinColumn(name = "cart_id")
+    )
     @MapKeyColumn(name = "product_id")
     @Column(name = "quantity")
     Map<UUID, Integer> products;
+
+    // equals/hashCode при необходимости только по shoppingCartId
 }
+

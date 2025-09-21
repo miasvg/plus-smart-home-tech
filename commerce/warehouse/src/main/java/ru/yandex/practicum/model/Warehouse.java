@@ -6,15 +6,16 @@ import lombok.experimental.FieldDefaults;
 import ru.yandex.practicum.dto.ProductParametersDto;
 
 import java.util.UUID;
-
 @Entity
 @Table(name = "warehouse_products")
-@Builder
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Warehouse {
+
     @Id
     @Column(name = "product_id", nullable = false, unique = true)
     UUID productId;

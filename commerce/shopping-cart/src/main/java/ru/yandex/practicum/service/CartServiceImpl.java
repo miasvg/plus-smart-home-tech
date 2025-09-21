@@ -24,7 +24,6 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class CartServiceImpl implements CartService {
     private final CartRepository cartRepository;
     private final WarehouseClient warehouseClient;
@@ -37,6 +36,7 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
+    @Transactional
     public ShoppingCartDto addProduct(String username, Map<UUID, Integer> products) {
         ShoppingCart cart = getOrCreateCart(username);
         cartRepository.save(cart);
@@ -54,6 +54,7 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
+    @Transactional
     public void deactivateCart(String username) {
         ShoppingCart cart = cartRepository.findByUsername(username).orElseThrow(
                 () -> new NotFoundException(String.format("Cart for user %s not found", username))
@@ -69,6 +70,7 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
+    @Transactional
     public ShoppingCartDto removeProduct(String username, Set<UUID> productIds) {
         ShoppingCart cart = checkShoppingCart(username);
 
@@ -80,6 +82,7 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
+    @Transactional
     public ShoppingCartDto updateProductQuantity(String username, ChangeProductQuantityRequest requestDto) {
         ShoppingCart cart = checkShoppingCart(username);
 
