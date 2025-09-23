@@ -33,3 +33,39 @@ services:
                              --partitions 1 --replication-factor 1 --if-not-exists \
                              --bootstrap-server kafka:29092'"
     init: true
+
+  postgres:
+    image: postgres:17.5
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=12345
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=telemetry_analyzer
+    healthcheck:
+      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      timeout: 5s
+      interval: 5s
+      retries: 10
+
+  db-init:
+    image: postgres:17.5
+    container_name: db-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint:
+      - bash
+      - -c
+      - |
+        set -e
+        psql postgresql://postgres:12345@postgres:5432 -v ON_ERROR_STOP=1 <<-EOSQL
+        create database commerce_shopping_cart;
+        create database commerce_shopping_store;
+        create database commerce_warehouse;
+        create database commerce_order;
+        create database commerce_delivery;
+        create database commerce_payment;
+        EOSQL
+
