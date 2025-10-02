@@ -38,7 +38,7 @@ public class ShoppingCart {
     )
     @MapKeyColumn(name = "product_id")
     @Column(name = "quantity")
-    Map<UUID, Integer> products;
+    Map<UUID, Long> products;
 
     // equals/hashCode при необходимости только по shoppingCartId
 }
