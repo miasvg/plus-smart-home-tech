@@ -9,5 +9,5 @@ import org.mapstruct.MappingConstants;
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface WarehouseMapper {
 
-    static Warehouse toWarehouse(NewProductInWarehouseRequest newProductInWarehouseRequest);
+    Warehouse toWarehouse(NewProductInWarehouseRequest newProductInWarehouseRequest);
 }

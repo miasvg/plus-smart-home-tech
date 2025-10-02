@@ -43,7 +43,7 @@ public class WarehouseServiceImpl implements WarehouseService {
                     String.format("Товар с ID = %s уже заведен на склад", productId));
         }
 
-        Warehouse product = WarehouseMapper.toWarehouse(requestDto);
+        Warehouse product = warehouseMapper.toWarehouse(requestDto);
         product.setQuantity(0);
         warehouseRepository.save(product);
     }
