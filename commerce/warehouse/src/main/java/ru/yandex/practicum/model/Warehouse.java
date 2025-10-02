@@ -23,7 +23,7 @@ public class Warehouse {
     Boolean fragile;
 
     @Embedded
-    ProductParametersDto parametersDto;
+    Dimension parametersDto;
 
     @Column(name = "weight", nullable = false)
     Double weight;
