@@ -7,7 +7,7 @@ public class CartMapper {
     public static ShoppingCartDto mapToCartDto(ShoppingCart shoppingCart) {
         return ShoppingCartDto.builder()
                 .shoppingCartId(shoppingCart.getShoppingCartId())
-                .products(shoppingCart.getProducts())
+                .products( shoppingCart.getProducts())
                 .build();
     }
 }

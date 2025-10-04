@@ -86,7 +86,7 @@ public class CartServiceImpl implements CartService {
     public ShoppingCartDto updateProductQuantity(String username, ChangeProductQuantityRequest requestDto) {
         ShoppingCart cart = checkShoppingCart(username);
 
-        Map<UUID, Integer> products = cart.getProducts();
+        Map<UUID, Long> products = cart.getProducts();
         if (products == null) {
             products = new HashMap<>();
             cart.setProducts(products);
@@ -102,7 +102,7 @@ public class CartServiceImpl implements CartService {
         if (newQuantity == 0) {
             products.remove(productId);
         } else {
-            products.put(productId, newQuantity);
+            products.put(productId, (long) newQuantity);
         }
 
         return CartMapper.mapToCartDto(cartRepository.save(cart));
@@ -128,12 +128,12 @@ public class CartServiceImpl implements CartService {
                 });
     }
 
-    private void mergeProducts(Map<UUID, Integer> existingProducts, Map<UUID, Integer> newProducts) {
+    private void mergeProducts(Map<UUID, Long> existingProducts, Map<UUID, Integer> newProducts) {
         if (existingProducts == null) {
             throw new IllegalStateException("Can not be null");
         }
         newProducts.forEach((productId, quantity) ->
-                existingProducts.merge(productId, quantity, Integer::sum));
+                existingProducts.merge(productId, (long) quantity, Long::sum));
     }
 
     private void checkWarehouseAvailability(ShoppingCart cart) {
