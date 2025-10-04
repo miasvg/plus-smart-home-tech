@@ -8,7 +8,6 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @ToString
 @EqualsAndHashCode
-@RequiredArgsConstructor
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

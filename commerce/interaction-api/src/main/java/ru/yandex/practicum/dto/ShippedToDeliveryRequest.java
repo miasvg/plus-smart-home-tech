@@ -11,7 +11,6 @@ import java.util.UUID;
 @Builder
 @ToString
 @EqualsAndHashCode
-@RequiredArgsConstructor
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)

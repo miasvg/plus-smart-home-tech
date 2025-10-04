@@ -12,7 +12,6 @@ import java.util.UUID;
 @Setter
 @ToString
 @EqualsAndHashCode
-@RequiredArgsConstructor
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
