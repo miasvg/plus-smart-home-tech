@@ -4,7 +4,11 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
+@ToString
+@EqualsAndHashCode
+@RequiredArgsConstructor
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

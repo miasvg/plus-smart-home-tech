@@ -1,14 +1,18 @@
 package ru.yandex.practicum.dto;
 
 import jakarta.validation.constraints.NotNull;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.util.UUID;
 
-@Data
+
+@Getter
+@Setter
+@Builder
+@ToString
+@EqualsAndHashCode
+@RequiredArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AssemblyProductsForOrderRequest {

@@ -8,7 +8,11 @@ import ru.yandex.practicum.enums.DeliveryState;
 
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
+@ToString
+@EqualsAndHashCode
+@RequiredArgsConstructor
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

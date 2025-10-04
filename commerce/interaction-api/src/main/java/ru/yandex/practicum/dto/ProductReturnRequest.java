@@ -7,7 +7,11 @@ import lombok.experimental.FieldDefaults;
 import java.util.Map;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
+@ToString
+@EqualsAndHashCode
+@RequiredArgsConstructor
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
